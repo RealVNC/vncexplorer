@@ -5,7 +5,7 @@ VNCExplorer is a set of scripts that can be run on supported platforms to gather
 
 
 ## Installing / Getting started
-The latest release is available at: https://github.com/andrewwoodhouse/vncexplorer/releases/latest
+The latest release is available at: https://github.com/RealVNC/vncexplorer/releases/latest
  
 Simply extract the ZIP or tar.gz file from the link above and run with administrative priveleges on your system.
 
