@@ -68,9 +68,15 @@ STARTDIR=`pwd`
 CURRUSER=`whoami`
 
 # prompt for username to collect $HOME/.vnc 
-echo "Enter non-root username (relevant only for user and/or virtual mode servers)"
-read USERENTERED
-REALUSER=${USERENTERED}
+echo "Are you diagnosing an issue with service mode or virtual mode daemon (Y / N)?"
+echo "(If unsure, RealVNC Support will advise as required)"
+read ANS
+case $ANS in
+"y"|"Y"|"YES"|"yes"|"Yes") echo "assuming root user"; REALUSER="root";;
+"n"|"N"|"NO"|"No") echo "Enter non-root username (relevant only for user and/or virtual mode servers)"; read USERENTERED; REALUSER=${USERENTERED};;
+*) echo "Input not valid - assuming root"; REALUSER="root";; 
+esac
+
 echo "collecting details for: $REALUSER"
 if [ "${MYPLATFORM}" = "Linux" -o "${MYPLATFORM}" = "AIX" -o "${MYPLATFORM}" = "HPUX" ]; then
 RCUHOMED=`cat /etc/passwd | grep \^$REALUSER\: | cut -d":" -f6`
@@ -129,7 +135,9 @@ mkdir ${STARTDIR}/${HOSTNAME}/startup
 if [ -d /etc/vnc ] ; then cp -R /etc/vnc/* ${STARTDIR}/${HOSTNAME}/etc/vnc ; fi
 # OSX doesn't support virtual mode so we don't need xstartup for this platform
 if [ -d $RCUHOMED/.vnc ] ; then 
- if [ "${MYPLATFORM}" != "OSX" ]; then cp $RCUHOMED/.vnc/xstartup ${STARTDIR}/${HOSTNAME}/userdotvnc ; fi
+ if [ "${MYPLATFORM}" != "OSX" ]; then 
+  if [ -f $RCUHOMED/.vnc/xstartup ]; then cp $RCUHOMED/.vnc/xstartup ${STARTDIR}/${HOSTNAME}/userdotvnc ; fi
+  fi
  if ls ${RCUHOMED}/.vnc/*.log 1> /dev/null 2>&1 ; then cp $RCUHOMED/.vnc/*.log ${STARTDIR}/${HOSTNAME}/logs/user; fi
 cp -R $RCUHOMED/.vnc/config.d ${STARTDIR}/${HOSTNAME}/userdotvnc;
 fi
@@ -158,7 +166,8 @@ if [ "${MYPLATFORM}" = "OSX" ]; then
 fi
 
 env > ${STARTDIR}/${HOSTNAME}/systemstate/userenv.txt
-logname > ${STARTDIR}/${HOSTNAME}/systemstate/actualuser.txt
+# below no longer required as we're explicitly asking for user details
+#logname > ${STARTDIR}/${HOSTNAME}/systemstate/actualuser.txt
 uname -a > ${STARTDIR}/${HOSTNAME}/systemstate/sysinfo.txt
 umask > ${STARTDIR}/${HOSTNAME}/systemstate/umask.txt
 echo $ORIGPATH > ${STARTDIR}/${HOSTNAME}/systemstate/path.txt
@@ -187,6 +196,12 @@ fi
 if [ "${MYPLATFORM}" = "Linux" ]; then
 	find /tmp -name Xvnc* -type s -print > ${STARTDIR}/${HOSTNAME}/systemstate/tmp_virtualmode_sockets.txt
 fi
+
+# get any /tmp/.X lock files (virtual mode daemon only)
+if [ "${MYPLATFORM}" = "Linux" ]; then
+	ls -al /tmp/.X*-lock > ${STARTDIR}/${HOSTNAME}/systemstate/tmp_virtualmodedaemon_locks.txt
+fi
+
 
 # startup configuration
 # Check for SysV and SysD on linux.
