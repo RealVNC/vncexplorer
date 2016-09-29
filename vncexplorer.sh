@@ -162,7 +162,7 @@ fi
 
 # get hardware info for OSX
 if [ "${MYPLATFORM}" = "OSX" ]; then
-  if [ -x /usr/sbin/system_profiler ]; then /usr/sbin/system_profiler -detailLevel mini > ${STARTDIR}/${HOSTNAME}/systemstate/macintosh_hardware_info.txt; fi
+  if [ -x /usr/sbin/system_profiler ]; then echo "Getting Mac hardware info..."; /usr/sbin/system_profiler -detailLevel mini > ${STARTDIR}/${HOSTNAME}/systemstate/macintosh_hardware_info.txt; fi
 fi
 
 env > ${STARTDIR}/${HOSTNAME}/systemstate/userenv.txt
@@ -441,6 +441,13 @@ if [ -d /etc/vnc/policy.d ];
 then cp -R /etc/vnc/policy.d/* ${STARTDIR}/${HOSTNAME}/etc/vnc/policy.d;
 fi
 
+# if netcat exists, check for common VNC ports
+if [ "${MYPLATFORM}" = "Linux" -o "${MYPLATFORM}" = "OSX" ]; then
+ if type "nc"  > /dev/null 2>&1; then 
+  nc -z -v -w5 localhost 5900-5909 2>${STARTDIR}/${HOSTNAME}/systemstate/netcat.txt; 
+  nc -z -v -w5 localhost 5999 2>>${STARTDIR}/${HOSTNAME}/systemstate/netcat.txt;
+ fi
+fi
 
 set +e
 # Pack it all up
