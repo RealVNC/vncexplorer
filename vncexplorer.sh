@@ -72,16 +72,17 @@ echo "Are you diagnosing an issue with service mode or virtual mode daemon (Y / 
 echo "(If unsure, RealVNC Support will advise as required)"
 read ANS
 case $ANS in
-"y"|"Y"|"YES"|"yes"|"Yes") echo "assuming root user"; REALUSER="root";;
+"y"|"Y"|"YES"|"yes"|"Yes") echo "assuming root user for service mode / virtual mode daemon"; REALUSER="root";;
 "n"|"N"|"NO"|"No") echo "Enter non-root username (relevant only for user and/or virtual mode servers)"; read USERENTERED; REALUSER=${USERENTERED};;
 *) echo "Input not valid - assuming root"; REALUSER="root";; 
 esac
 
 echo "collecting details for: $REALUSER"
 if [ "${MYPLATFORM}" = "Linux" -o "${MYPLATFORM}" = "AIX" -o "${MYPLATFORM}" = "HPUX" ]; then
-RCUHOMED=`cat /etc/passwd | grep \^$REALUSER\: | cut -d":" -f6`
-echo "RCUHOMED: $RCUHOMED"
-if [ -z ${RCUHOMED} ]; then echo "cannot determine non-root user home directory. Aborting..."; exit; fi
+ RCUHOMED=`cat /etc/passwd | grep \^$REALUSER\: | cut -d":" -f6`; else RCUHOMED=$HOME
+ 
+ if [ ! $RCUHOMED ]; then echo "user $REALUSER home directory not found - assuming  /tmp"; RCUHOMED=/tmp; fi # if we can't get the user home directory, set it to /tmp so we don't throw errors
+#echo "User home directory: $RCUHOMED"
 fi
 
 if [ "${MYPLATFORM}" = "OSX" ]; then
@@ -124,6 +125,8 @@ mkdir ${STARTDIR}/${HOSTNAME}/etc/pam.d
 mkdir ${STARTDIR}/${HOSTNAME}/userdotvnc
 mkdir ${STARTDIR}/${HOSTNAME}/userdotvnc/VNCAddressBook
 mkdir ${STARTDIR}/${HOSTNAME}/userdotvnc/config.d
+mkdir ${STARTDIR}/${HOSTNAME}/rootdotvnc
+mkdir ${STARTDIR}/${HOSTNAME}/rootdotvnc/config.d
 mkdir ${STARTDIR}/${HOSTNAME}/systemstate
 mkdir ${STARTDIR}/${HOSTNAME}/filesystem
 mkdir ${STARTDIR}/${HOSTNAME}/logs
@@ -141,6 +144,12 @@ if [ -d $RCUHOMED/.vnc ] ; then
  if ls ${RCUHOMED}/.vnc/*.log 1> /dev/null 2>&1 ; then cp $RCUHOMED/.vnc/*.log ${STARTDIR}/${HOSTNAME}/logs/user; fi
 cp -R $RCUHOMED/.vnc/config.d ${STARTDIR}/${HOSTNAME}/userdotvnc;
 fi
+
+# get system .vnc/config.d
+if [ -d /.vnc/config.d ]; then cp -R /.vnc/config.d/* ${STARTDIR}/${HOSTNAME}/rootdotvnc/config.d; fi
+if [ -d /root/.vnc/config.d ]; then cp -R /root/.vnc/config.d/* ${STARTDIR}/${HOSTNAME}/rootdotvnc/config.d; fi
+
+
 
 if [ -d $HOME/.vnc/VNCAddressBook ] ; then
 cp -R $HOME/.vnc/VNCAddressBook ${STARTDIR}/${HOSTNAME}/userdotvnc;
