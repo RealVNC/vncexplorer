@@ -399,6 +399,12 @@ echo Gathering license keys
 if exist "C:\Program Files\RealVNC\VNC Server\vnclicense.exe" (
 	"C:\Program Files\RealVNC\VNC Server\vnclicense.exe" -list > %VDIR%\licensekeys.txt
 )
+
+:: power report 
+mkdir %VDIR%\PowerReport
+powercfg -energy
+copy energy-report.html %VDIR%\PowerReport
+
 :: log files
 echo Gathering log files
 mkdir %VDIR%\UserModeServerLogs
