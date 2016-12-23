@@ -308,7 +308,6 @@ fi
 # power saving settings
 # users will have issues if their remote machine has gone to sleep, so let's get power saving settings
 # on OSX do through systemsetup -getcomputersleep
-# on linux 
 
 if [ "${MYPLATFORM}" = "OSX" ]; 
 then /usr/sbin/systemsetup -getcomputersleep > ${STARTDIR}/${HOSTNAME}/systemstate/macos.sleepsetting.txt;
