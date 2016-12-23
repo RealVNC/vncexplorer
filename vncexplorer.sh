@@ -302,6 +302,17 @@ if [ "${MYPLATFORM}" = "OSX" ];
 then lsof -i > ${STARTDIR}/${HOSTNAME}/systemstate/netstat.darwin.txt;
 fi
 
+
+# power saving settings
+# users will have issues if their remote machine has gone to sleep, so let's get power saving settings
+# on OSX do through systemsetup -getcomputersleep
+# on linux 
+
+if [ "${MYPLATFORM}" = "OSX" ]; 
+then /usr/sbin/systemsetup -getcomputersleep > ${STARTDIR}/${HOSTNAME}/systemstate/macos.sleepsetting.txt;
+fi
+ 
+
 # Maintainers: we do *NOT* want to run pfiles against other processes
 # doing so could potentially cause stability issues.
 if [ "${MYPLATFORM}" = "HPUX" ]; then
