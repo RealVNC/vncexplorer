@@ -401,9 +401,12 @@ if exist "C:\Program Files\RealVNC\VNC Server\vnclicense.exe" (
 )
 
 :: power report 
+echo Running system power report 
 mkdir %VDIR%\PowerReport
-powercfg -energy
-copy energy-report.html %VDIR%\PowerReport
+if exist "C:\Windows\System32\powercfg.exe" ( 
+	"C:\Windows\System32\powercfg.exe" -energy
+	copy energy-report.html %VDIR%\PowerReport
+)
 
 :: log files
 echo Gathering log files
