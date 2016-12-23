@@ -27,6 +27,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# this script can be used to collect information on VNC 5.x and 6.x
 set -e
 #set standard UNIX paths in case these are not set
 ORIGPATH=$PATH
@@ -68,11 +69,11 @@ STARTDIR=`pwd`
 CURRUSER=`whoami`
 
 # prompt for username to collect $HOME/.vnc 
-echo "Are you diagnosing an issue with service mode or virtual mode daemon (Y / N)?"
+echo "Are you diagnosing an issue with service mode (Y / N)?"
 echo "(If unsure, RealVNC Support will advise as required)"
 read ANS
 case $ANS in
-"y"|"Y"|"YES"|"yes"|"Yes") echo "assuming root user for service mode / virtual mode daemon"; REALUSER="root";;
+"y"|"Y"|"YES"|"yes"|"Yes") echo "assuming root user for service mode"; REALUSER="root";;
 "n"|"N"|"NO"|"No") echo "Enter non-root username (relevant only for user and/or virtual mode servers)"; read USERENTERED; REALUSER=${USERENTERED};;
 *) echo "Input not valid - assuming root"; REALUSER="root";; 
 esac
@@ -140,6 +141,7 @@ if [ -d /etc/vnc ] ; then cp -R /etc/vnc/* ${STARTDIR}/${HOSTNAME}/etc/vnc ; fi
 if [ -d $RCUHOMED/.vnc ] ; then 
  if [ "${MYPLATFORM}" != "OSX" ]; then 
   if [ -f $RCUHOMED/.vnc/xstartup ]; then cp $RCUHOMED/.vnc/xstartup ${STARTDIR}/${HOSTNAME}/userdotvnc ; fi
+  if [ -f $RCUHOMED/.vnc/xstartup.custom ]; then cp $RCUHOMED/.vnc/xstartup.custom ${STARTDIR}/${HOSTNAME}/userdotvnc ; fi
   fi
  if ls ${RCUHOMED}/.vnc/*.log 1> /dev/null 2>&1 ; then cp $RCUHOMED/.vnc/*.log ${STARTDIR}/${HOSTNAME}/logs/user; fi
 cp -R $RCUHOMED/.vnc/config.d ${STARTDIR}/${HOSTNAME}/userdotvnc;

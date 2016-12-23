@@ -227,6 +227,10 @@ echo Server : RemoveWallpaper: >> %VDIR%\hklm-reg.txt
 2>nul reg query HKLM\SOFTWARE\RealVNC\vncserver | findstr RemoveWallpaper >> %VDIR%\hklm-reg.txt
 echo Server : AgentArgs: >> %VDIR%\hklm-reg.txt 
 2>nul reg query HKLM\SOFTWARE\RealVNC\vncserver | findstr _ServerBlackScreenWorkAround >> %VDIR%\hklm-reg.txt
+echo Server : AllowCloudRfb: >> %VDIR%\hklm-reg.txt 
+2>nul reg query HKLM\SOFTWARE\RealVNC\vncserver | findstr AllowCloudRfb >> %VDIR%\hklm-reg.txt
+echo Server : CloudCredentialsFile: >> %VDIR%\hklm-reg.txt 
+2>nul reg query HKLM\SOFTWARE\RealVNC\vncserver | findstr CloudCredentialsFile >> %VDIR%\hklm-reg.txt
 
 :: get computer policy
 2>nul reg export HKLM\Software\Policies\RealVNC\vncserver %VDIR%\vncserver-policy-computer.txt
@@ -281,6 +285,20 @@ echo Viewer : KeepAliveInterval: >> %VDIR%\hkcu-reg.txt
 2>nul reg query HKCU\SOFTWARE\RealVNC\vncviewer | findstr KeepAliveInterval >> %VDIR%\hkcu-reg.txt
 echo Viewer : KeepAliveResponseTimeout: >> %VDIR%\hkcu-reg.txt 
 2>nul reg query HKCU\SOFTWARE\RealVNC\vncviewer | findstr KeepAliveResponseTimeout >> %VDIR%\hkcu-reg.txt
+:: viewer keys for VNC Connect
+echo Viewer : EnableAnalytics: >> %VDIR%\hkcu-reg.txt 
+2>nul reg query HKCU\SOFTWARE\RealVNC\vncviewer | findstr EnableAnalytics >> %VDIR%\hkcu-reg.txt
+echo Viewer : HideScreenshots: >> %VDIR%\hkcu-reg.txt 
+2>nul reg query HKCU\SOFTWARE\RealVNC\vncviewer | findstr HideScreenshots >> %VDIR%\hkcu-reg.txt
+echo Viewer : PasswordStore: >> %VDIR%\hkcu-reg.txt 
+2>nul reg query HKCU\SOFTWARE\RealVNC\vncviewer | findstr PasswordStore >> %VDIR%\hkcu-reg.txt
+echo Viewer : PasswordStoreOffer: >> %VDIR%\hkcu-reg.txt 
+2>nul reg query HKCU\SOFTWARE\RealVNC\vncviewer | findstr PasswordStoreOffer >> %VDIR%\hkcu-reg.txt
+echo Viewer : Quality: >> %VDIR%\hkcu-reg.txt 
+2>nul reg query HKCU\SOFTWARE\RealVNC\vncviewer | findstr Quality >> %VDIR%\hkcu-reg.txt
+echo Viewer : UpdateScreenshot: >> %VDIR%\hkcu-reg.txt 
+2>nul reg query HKCU\SOFTWARE\RealVNC\vncviewer | findstr UpdateScreenshot >> %VDIR%\hkcu-reg.txt
+
 
 :: User Mode keys (HKCU)
 echo User Mode Server : security types: >> %VDIR%\hkcu-reg.txt 
@@ -367,6 +385,11 @@ echo User Mode Server : Permissions : >> %VDIR%\hkcu-reg.txt
 2>nul reg query HKCU\SOFTWARE\RealVNC\vncserver | findstr Permissions  >> %VDIR%\hkcu-reg.txt
 echo User Mode Server : CompatibilityFlags : >> %VDIR%\hkcu-reg.txt 
 2>nul reg query "HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" | findstr "vnc.*.exe"   >> %VDIR%\hkcu-reg.txt
+echo User Mode Server : AllowCloudRfb: >> %VDIR%\hkcu-reg.txt
+2>nul reg query HKCU\SOFTWARE\RealVNC\vncserver | findstr AllowCloudRfb >> %VDIR%\hkcu-reg.txt
+echo User Mode Server : CloudCredentialsFile: >> %VDIR%\hkcu-reg.txt
+2>nul reg query HKCU\SOFTWARE\RealVNC\vncserver | findstr CloudCredentialsFile >> %VDIR%\hkcu-reg.txt
+
 :: vncconfig
 echo VNCConfig >> %VDIR%\hkcu-reg.txt 
 2>nul reg query HKCU\SOFTWARE\RealVNC\vncconfig >> %VDIR%\hkcu-reg.txt
@@ -376,6 +399,15 @@ echo Gathering license keys
 if exist "C:\Program Files\RealVNC\VNC Server\vnclicense.exe" (
 	"C:\Program Files\RealVNC\VNC Server\vnclicense.exe" -list > %VDIR%\licensekeys.txt
 )
+
+:: power report 
+echo Running system power report 
+mkdir %VDIR%\PowerReport
+if exist "C:\Windows\System32\powercfg.exe" ( 
+	"C:\Windows\System32\powercfg.exe" -energy
+	copy energy-report.html %VDIR%\PowerReport
+)
+
 :: log files
 echo Gathering log files
 mkdir %VDIR%\UserModeServerLogs
