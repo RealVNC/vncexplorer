@@ -192,6 +192,11 @@ if [ "${MYPLATFORM}" = "Linux" ]; then
 	ps -p $DISPMGR > ${STARTDIR}/${HOSTNAME}/systemstate/xservers.txt
 	fi
 fi
+# get root crontab
+if [ "${MYPLATFORM}" = "Linux" ]; then
+	crontab -u root -l > ${STARTDIR}/${HOSTNAME}/systemstate/rootcrontab.txt
+fi
+
 # get X session manager details
 if [ "${MYPLATFORM}" = "Linux" ]; then
     if [ -d /usr/share/xsessions ];
@@ -201,7 +206,10 @@ if [ "${MYPLATFORM}" = "Linux" ]; then
     done >> ${STARTDIR}/${HOSTNAME}/systemstate/xsession_running.txt
     fi
 fi
-
+# get X settings info
+if [ "${MYPLATFORM}" = "Linux" ]; then
+    xset q > ${STARTDIR}/${HOSTNAME}/systemstate/xsettings.txt 2>&1
+fi
 	
 # list Xvnc control sockets in /tmp to help in identifying any permission issues
 if [ "${MYPLATFORM}" = "Linux" ]; then
