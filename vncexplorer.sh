@@ -34,14 +34,18 @@ set -e
 ORIGPATH=$PATH
 PATH=$PATH:/bin:/sbin:/usr/sbin:/usr/bin:/usr/ucb
 
+Platform_Detection () {
+PLATFORM="NONE"
+if [ `uname -a | grep Linux | wc -l` -ge 1 ]; then PLATFORM="Linux";
+elif [ `uname -a | grep AIX | wc -l` -ge 1 ]; then PLATFORM="AIX";
+elif [ `uname -a | grep HP-UX | wc -l` -ge 1 ]; then PLATFORM="HPUX";
+elif [ `uname -a | grep SunOS | wc -l` -ge 1 ]; then PLATFORM="SOLARIS";
+elif [ `uname -a | grep Darwin | wc -l` -ge 1 ]; then PLATFORM="OSX"; fi
+echo $PLATFORM
+}
+
 # platform detection
-MYPLATFORM="none"
-if [ `uname -a | grep Linux | wc -l` -ge 1 ]; then MYPLATFORM="Linux"; fi
-if [ `uname -a | grep AIX | wc -l` -ge 1 ]; then MYPLATFORM="AIX"; fi
-if [ `uname -a | grep HP-UX | wc -l` -ge 1 ]; then MYPLATFORM="HPUX"; fi
-if [ `uname -a | grep SunOS | wc -l` -ge 1 ]; then MYPLATFORM="SOLARIS"; fi
-if [ `uname -a | grep Darwin | wc -l` -ge 1 ]; then MYPLATFORM="OSX"; fi
-if [ "${MYPLATFORM}" = "none" ]; then echo "ERROR: Unsupported platform. Aborting..."; fi
+MYPLATFORM="$(Platform_Detection)"
 echo "Platform: ${MYPLATFORM}"
 
 # check we are running with sufficient permissions
@@ -137,6 +141,7 @@ mkdir ${STARTDIR}/${HOSTNAME}/logs/system
 mkdir ${STARTDIR}/${HOSTNAME}/startup
 
 #enable debug logging
+echo "Enabling debug logging...";sleep 1;
 mkdir /etc/vnc/policy.d
 echo "Log=*:file:100" >> /etc/vnc/policy.d/common
 
@@ -162,8 +167,17 @@ if [ "${MYPLATFORM}" = "SOLARIS" ]; then
 fi
 
 # give service a chance to restart
-echo "Sleeping 5s to allow VNC Server to restart..."
-sleep 5
+echo "Sleeping 5s to allow VNC Server to restart..."; sleep 5
+
+echo "Please re-create the issue that you have reported to RealVNC Support"; sleep 10
+
+echo "Have you re-created the issue? (Y / N)?"
+read ANS
+case $ANS in
+"y"|"Y"|"YES"|"yes"|"Yes") echo "assuming root user for service mode"; REALUSER="root";;
+"n"|"N"|"NO"|"No") echo "Enter non-root username (relevant only for user and/or virtual mode servers)"; read USERENTERED; REALUSER=${USERENTERED};;
+*) echo "Input not valid - assuming root"; REALUSER="root";; 
+esac
 
 # copy relevant VNC configuration files
 if [ -d /etc/vnc ]; then cp -R /etc/vnc/* ${STARTDIR}/${HOSTNAME}/etc/vnc ; fi
