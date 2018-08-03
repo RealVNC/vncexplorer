@@ -515,11 +515,21 @@ fi
 set +e
 # Pack it all up
 cd ${STARTDIR}
-tar -czf ${TEMPDIR}/vncsupport-${HOSTNAME}.tar.gz ${HOSTNAME}
+if [ "${MYPLATFORM}" = "Linux" -o "${MYPLATFORM}" = "OSX" ]; then
+	tar -czf ${TEMPDIR}/vncsupport-${HOSTNAME}.tar.gz ${HOSTNAME}
+else
+	tar -cf ${TEMPDIR}/vncsupport-${HOSTNAME}.tar ${HOSTNAME}
+fi
+
 # Clean up
 echo "cleaning up ${STARTDIR}/${HOSTNAME}. "
 rm -rf ${STARTDIR}/${HOSTNAME}
 
 echo ""
 echo "Please attach the following file to your RealVNC Customer Support ticket:"
-echo "$TEMPDIR/vncsupport-${HOSTNAME}.tar.gz"
+if [ "${MYPLATFORM}" = "Linux" -o "${MYPLATFORM}" = "OSX" ]; then
+	echo "$TEMPDIR/vncsupport-${HOSTNAME}.tar.gz"
+else
+	echo "$TEMPDIR/vncsupport-${HOSTNAME}.tar"
+fi
+
