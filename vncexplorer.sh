@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2016 RealVNC Limited. All rights reserved.
+# Copyright (C) 2018 RealVNC Limited. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -44,9 +44,31 @@ elif [ `uname -a | grep Darwin | wc -l` -ge 1 ]; then PLATFORM="OSX"; fi
 echo $PLATFORM
 }
 
+System_Check () {
+	# basically is this a chkconfig system (RHEL/CentOS), a systemd system or an init system
+	# ordering is important as some systems such as CentOS support both systemd and chkconfig for
+	# compatibility purposes. Therefore we start with the oldest with systemd being final check
+	if type initctl list > /dev/null 2>&1; then SYSTEMD=0; INITD=1; CHKCONFIG=0; fi
+	if type chkconfig > /dev/null 2>&1; then SYSTEMD=0; INITD=0; CHKCONFIG=1; fi
+	if type systemctl > /dev/null 2>&1; then SYSTEMD=1; INITD=0; CHKCONFIG=0; else SYSTEMD=0; INITD=0; CHKCONFIG=0; fi 
+
+	# echo "type: systemd: $SYSTEMD chkconfig: $CHKCONFIG init: $INITD"
+	# on some systems, initctl doesn't exist but it is still init based. Handle this:
+	if [ $SYSTEMD == 0 ] && [ $INITD == 0 ] && [ $CHKCONFIG == 0 ] ; then INITD=1; fi
+	# we need to work out if we're running on Ubuntu 14.04 as we have a special case for that: 
+	LSBRELEASE=`lsb_release -r | awk '{print $2}'`
+	if [ $LSBRELEASE == "14.04" ]  && [ -d /usr/lib/systemd ]; then SYSTEMD=0; INITD=1; CHKCONFIG=0;; fi
+}
+
 # platform detection
 MYPLATFORM="$(Platform_Detection)"
 echo "Platform: ${MYPLATFORM}"
+
+# upstart detection
+SYSTEMD=0;
+INITD=0;
+CHKCONFIG=0;
+System_Check
 
 # check we are running with sufficient permissions
 if [ "${MYPLATFORM}" = "Linux" -o "${MYPLATFORM}" = "OSX" -o "${MYPLATFORM}" = "AIX" -o "${MYPLATFORM}" = "HPUX" ]; then
@@ -75,7 +97,7 @@ STARTDIR=`pwd`
 CURRUSER=`whoami`
 
 # prompt for username to collect $HOME/.vnc 
-echo "Are you diagnosing an issue with service mode (Y / N)?"
+echo "Are you diagnosing an issue with Service Mode (Y / N)?"
 echo "(If unsure, RealVNC Support will advise as required)"
 read ANS
 case $ANS in
@@ -172,12 +194,14 @@ echo "Sleeping 5s to allow VNC Server to restart..."; sleep 5
 echo "Please re-create the issue that you have reported to RealVNC Support"; sleep 10
 
 echo "Have you re-created the issue? (Y / N)?"
-read ANS
-case $ANS in
-"y"|"Y"|"YES"|"yes"|"Yes") echo "assuming root user for service mode"; REALUSER="root";;
-"n"|"N"|"NO"|"No") echo "Enter non-root username (relevant only for user and/or virtual mode servers)"; read USERENTERED; REALUSER=${USERENTERED};;
-*) echo "Input not valid - assuming root"; REALUSER="root";; 
-esac
+while [ $ANS != "Y" ] ; do
+	read ANS
+	case $ANS in
+	"y"|"Y"|"YES"|"yes"|"Yes") echo "Script will now continue";
+	"n"|"N"|"NO"|"No") echo "Please re-create the issue";
+	*) echo "Input not valid, please try again";
+	esac
+done
 
 # copy relevant VNC configuration files
 if [ -d /etc/vnc ]; then cp -R /etc/vnc/* ${STARTDIR}/${HOSTNAME}/etc/vnc ; fi
@@ -212,18 +236,18 @@ if [ -f /etc/X11/vncserver-virtual.conf ]; then cp /etc/X11/vncserver-virtual.co
 # Capture system environment details
 # get linux version 
 if [ "${MYPLATFORM}" = "Linux" ]; then
-  cat /etc/*release > ${STARTDIR}/${HOSTNAME}/systemstate/linux-version.txt	
+	cat /etc/*release > ${STARTDIR}/${HOSTNAME}/systemstate/linux-version.txt
 fi
 
 # get PCI hardware info for linux
 if [ "${MYPLATFORM}" = "Linux" ]; then
-  if [ -x /usr/bin/lspci ]; then /usr/bin/lspci  > ${STARTDIR}/${HOSTNAME}/systemstate/lspci.txt; fi
-  if [ -x /sbin/lspci ]; then /sbin/lspci  > ${STARTDIR}/${HOSTNAME}/systemstate/lspci.txt; fi
+	if [ -x /usr/bin/lspci ]; then /usr/bin/lspci  > ${STARTDIR}/${HOSTNAME}/systemstate/lspci.txt; fi
+	if [ -x /sbin/lspci ]; then /sbin/lspci  > ${STARTDIR}/${HOSTNAME}/systemstate/lspci.txt; fi
 fi
 
 # get hardware info for OSX
 if [ "${MYPLATFORM}" = "OSX" ]; then
-  if [ -x /usr/sbin/system_profiler ]; then echo "Getting Mac hardware info..."; /usr/sbin/system_profiler -detailLevel mini > ${STARTDIR}/${HOSTNAME}/systemstate/macintosh_hardware_info.txt; fi
+	if [ -x /usr/sbin/system_profiler ]; then echo "Getting Mac hardware info..."; /usr/sbin/system_profiler -detailLevel mini > ${STARTDIR}/${HOSTNAME}/systemstate/macintosh_hardware_info.txt; fi
 fi
 
 env > ${STARTDIR}/${HOSTNAME}/systemstate/userenv.txt
@@ -237,8 +261,8 @@ fi
 # get X server details
 if [ "${MYPLATFORM}" = "Linux" ]; then
 	if [ -d /tmp/.X11-unix  -a `ls /tmp/.X11-unix | wc -l` -ne 0 ]; then 
-	DISPMGR=`lsof -t /tmp/.X11-unix/*`
-	ps -p $DISPMGR > ${STARTDIR}/${HOSTNAME}/systemstate/xservers.txt
+		DISPMGR=`lsof -t /tmp/.X11-unix/*`
+		ps -p $DISPMGR > ${STARTDIR}/${HOSTNAME}/systemstate/xservers.txt
 	fi
 fi
 
@@ -325,9 +349,10 @@ fi
 
 # Gather running processes
 # Apply the Z modifier on SELinux systems to get appropriate information relevant to that.
-if [ "${SELINUX}" = "1" ]; 
-	then ps -efZ | grep -i vnc | grep -v vncexplorer | grep -v grep > ${STARTDIR}/${HOSTNAME}/systemstate/vncprocs.txt;
-	else ps -ef | grep -i vnc | grep -v vncexplorer | grep -v grep > ${STARTDIR}/${HOSTNAME}/systemstate/vncprocs.txt;
+if [ "${SELINUX}" = "1" ]; then
+	ps -efZ | grep -i vnc | grep -v vncexplorer | grep -v grep > ${STARTDIR}/${HOSTNAME}/systemstate/vncprocs.txt;
+else
+	ps -ef | grep -i vnc | grep -v vncexplorer | grep -v grep > ${STARTDIR}/${HOSTNAME}/systemstate/vncprocs.txt;
 fi
 
 # Gather network configuration
@@ -335,7 +360,6 @@ if [ "${MYPLATFORM}" = "Linux" -o "${MYPLATFORM}" = "OSX" -o "${MYPLATFORM}" = "
 if [ "${MYPLATFORM}" = "HPUX" ]; then
 	LANINT=`lanscan | grep lan | grep -v LinkAgg | awk '{print $5}'`
 	for THISLAN in ${LANINT} ; do
-		#echo $THISLAN;
 		ifconfig $THISLAN >> ${STARTDIR}/${HOSTNAME}/systemstate/ifconfig.txt
 	done
 fi
@@ -361,8 +385,8 @@ fi
 # power saving settings
 # users will have issues if their remote machine has gone to sleep, so let's get power saving settings
 # on OSX do through systemsetup -getcomputersleep
-if [ "${MYPLATFORM}" = "OSX" ]; 
-then /usr/sbin/systemsetup -getcomputersleep > ${STARTDIR}/${HOSTNAME}/systemstate/macos.sleepsetting.txt;
+if [ "${MYPLATFORM}" = "OSX" ]; then
+	/usr/sbin/systemsetup -getcomputersleep > ${STARTDIR}/${HOSTNAME}/systemstate/macos.sleepsetting.txt;
 fi
 
 # Maintainers: we do *NOT* want to run pfiles against other processes
@@ -416,11 +440,9 @@ if type dpkg > /dev/null 2>&1; then dpkg -l | grep -i vnc > ${STARTDIR}/${HOSTNA
 if type rpm > /dev/null 2>&1; then rpm -qa --qf '%{NAME}-%{VERSION}-%{RELEASE} (%{ARCH})\n' | grep -i vnc > ${STARTDIR}/${HOSTNAME}/systemstate/packages.rpm.txt; fi
 if [ "${MYPLATFORM}" = "SOLARIS" ]; then
 	pkginfo | grep -i vnc >> ${STARTDIR}/${HOSTNAME}/systemstate/packages.solaris.txt;
-fi
-if [ "${MYPLATFORM}" = "HPUX" ]; then
+elif [ "${MYPLATFORM}" = "HPUX" ]; then
 	/usr/sbin/swlist | grep -i vnc >> ${STARTDIR}/${HOSTNAME}/systemstate/packages.hpux.txt;
-fi
-if [ "${MYPLATFORM}" = "OSX" ]; then
+elif [ "${MYPLATFORM}" = "OSX" ]; then
 	pkgutil --pkgs >> ${STARTDIR}/${HOSTNAME}/systemstate/packages.darwin.txt;
 fi
 
@@ -431,7 +453,7 @@ if [ "${MYPLATFORM}" = "OSX" ]; then
 	if ls ${HOME}/Library/Logs/vnc/*.log > /dev/null 2>&1; then cp ${HOME}/Library/Logs/vnc/*.log ${STARTDIR}/${HOSTNAME}/logs/user/; fi;
 	if ls ${HOME}/Library/Logs/vnc/*.log.bak > /dev/null 2>&1; then cp ${HOME}/Library/Logs/vnc/*.log.bak ${STARTDIR}/${HOSTNAME}/logs/user/; fi;
 fi
-if [ "${MYPLATFORM}" != "OSX" ]; then
+else
 	if ls /var/log/vnc*.log > /dev/null 2>&1; then cp /var/log/vnc*.log ${STARTDIR}/${HOSTNAME}/logs/system/; fi;
 	if ls /var/log/vnc*.log.bak > /dev/null 2>&1; then cp /var/log/vnc*.log.bak ${STARTDIR}/${HOSTNAME}/logs/system/; fi;
 fi
@@ -533,3 +555,4 @@ else
 	echo "$TEMPDIR/vncsupport-${HOSTNAME}.tar"
 fi
 
+exit 0
