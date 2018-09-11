@@ -56,8 +56,8 @@ System_Check () {
 	# on some systems, initctl doesn't exist but it is still init based. Handle this:
 	if [ $SYSTEMD == 0 ] && [ $INITD == 0 ] && [ $CHKCONFIG == 0 ] ; then INITD=1; fi
 	# we need to work out if we're running on Ubuntu 14.04 as we have a special case for that: 
-	LSBRELEASE=`lsb_release -r | awk '{print $2}'`
-	if [ $LSBRELEASE == "14.04" ]  && [ -d /usr/lib/systemd ]; then SYSTEMD=0; INITD=1; CHKCONFIG=0; fi
+	#LSBRELEASE=`lsb_release -r | awk '{print $2}'`
+	#if [ $LSBRELEASE == "14.04" ] && [ -d /usr/lib/systemd ]; then SYSTEMD=0; INITD=1; CHKCONFIG=0; fi
 }
 
 # platform detection
