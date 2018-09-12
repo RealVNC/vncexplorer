@@ -57,7 +57,7 @@ System_Check () {
 	if [ $SYSTEMD = 0 ] && [ $INITD = 0 ] && [ $CHKCONFIG = 0 ] ; then INITD=1; fi
 	# we need to work out if we're running on Ubuntu 14.04 as we have a special case for that: 
 	LSBRELEASE=`lsb_release -r | awk '{print $2}'`
-	if [ $LSBRELEASE = "14.04" ] && [ -d /usr/lib/systemd ]; then SYSTEMD=0; INITD=1; CHKCONFIG=0; fi
+	if [ "$LSBRELEASE" = "14.04" ] && [ -d /usr/lib/systemd ]; then SYSTEMD=0; INITD=1; CHKCONFIG=0; fi
 }
 
 # platform detection
@@ -164,7 +164,7 @@ mkdir ${STARTDIR}/${HOSTNAME}/startup
 
 #enable debug logging
 echo "Enabling debug logging...";sleep 1;
-mkdir /etc/vnc/policy.d
+mkdir /etc/vnc/policy.d 2>&1
 echo "Log=*:file:100" >> /etc/vnc/policy.d/common
 
 # assume we want to restart VNC Server for now
@@ -191,13 +191,14 @@ fi
 # give service a chance to restart
 echo "Sleeping 5s to allow VNC Server to restart..."; sleep 5
 
-echo "Please re-create the issue that you have reported to RealVNC Support"; sleep 10
+echo "Please re-create the issue that you have reported to RealVNC Support"; sleep 5
 
 echo "Have you re-created the issue? (Y / N)?"
-while [ "$ANS" != "Y" ] ; do
+RECREATED="N"
+while [ "$RECREATED" != "Y" ] ; do
 	read ANS
 	case "$ANS" in
-	"y"|"Y"|"YES"|"yes"|"Yes") echo "Script will now continue";;
+	"y"|"Y"|"YES"|"yes"|"Yes") echo "Script will now continue";RECREATED="Y";;
 	"n"|"N"|"NO"|"No") echo "Please re-create the issue";;
 	*) echo "Input not valid, please try again";;
 	esac
