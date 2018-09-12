@@ -194,9 +194,9 @@ echo "Sleeping 5s to allow VNC Server to restart..."; sleep 5
 echo "Please re-create the issue that you have reported to RealVNC Support"; sleep 10
 
 echo "Have you re-created the issue? (Y / N)?"
-while [ $ANS != "Y" ] ; do
+while [ "$ANS" != "Y" ] ; do
 	read ANS
-	case $ANS in
+	case "$ANS" in
 	"y"|"Y"|"YES"|"yes"|"Yes") echo "Script will now continue";;
 	"n"|"N"|"NO"|"No") echo "Please re-create the issue";;
 	*) echo "Input not valid, please try again";;
