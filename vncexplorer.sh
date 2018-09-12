@@ -197,9 +197,9 @@ echo "Have you re-created the issue? (Y / N)?"
 while [ $ANS != "Y" ] ; do
 	read ANS
 	case $ANS in
-	"y"|"Y"|"YES"|"yes"|"Yes") echo "Script will now continue";
-	"n"|"N"|"NO"|"No") echo "Please re-create the issue";
-	*) echo "Input not valid, please try again";
+	"y"|"Y"|"YES"|"yes"|"Yes") echo "Script will now continue";;
+	"n"|"N"|"NO"|"No") echo "Please re-create the issue";;
+	*) echo "Input not valid, please try again";;
 	esac
 done
 
