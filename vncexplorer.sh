@@ -164,7 +164,7 @@ mkdir ${STARTDIR}/${HOSTNAME}/startup
 
 #enable debug logging
 echo "Enabling debug logging...";sleep 1;
-mkdir /etc/vnc/policy.d 2>&1
+mkdir -p /etc/vnc/policy.d
 echo "Log=*:file:100" >> /etc/vnc/policy.d/common
 
 # assume we want to restart VNC Server for now
@@ -453,7 +453,6 @@ if [ "${MYPLATFORM}" = "OSX" ]; then
 	if ls /Library/Logs/vnc*.log.bak > /dev/null 2>&1; then cp /Library/Logs/vnc*.log.bak ${STARTDIR}/${HOSTNAME}/logs/system/; fi;
 	if ls ${HOME}/Library/Logs/vnc/*.log > /dev/null 2>&1; then cp ${HOME}/Library/Logs/vnc/*.log ${STARTDIR}/${HOSTNAME}/logs/user/; fi;
 	if ls ${HOME}/Library/Logs/vnc/*.log.bak > /dev/null 2>&1; then cp ${HOME}/Library/Logs/vnc/*.log.bak ${STARTDIR}/${HOSTNAME}/logs/user/; fi;
-fi
 else
 	if ls /var/log/vnc*.log > /dev/null 2>&1; then cp /var/log/vnc*.log ${STARTDIR}/${HOSTNAME}/logs/system/; fi;
 	if ls /var/log/vnc*.log.bak > /dev/null 2>&1; then cp /var/log/vnc*.log.bak ${STARTDIR}/${HOSTNAME}/logs/system/; fi;
