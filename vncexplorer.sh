@@ -54,25 +54,40 @@ System_Check () {
 
 	# echo "type: systemd: $SYSTEMD chkconfig: $CHKCONFIG init: $INITD"
 	# on some systems, initctl doesn't exist but it is still init based. Handle this:
-	if [ $SYSTEMD = 0 ] && [ $INITD = 0 ] && [ $CHKCONFIG = 0 ] ; then INITD=1; fi
+	if [ "${SYSTEMD}" = 0 ] && [ "${INITD}" = 0 ] && [ "${CHKCONFIG}" = 0 ] ; then INITD=1; fi
 	# we need to work out if we're running on Ubuntu 14.04 as we have a special case for that: 
 	LSBRELEASE=`lsb_release -r | awk '{print $2}'`
-	if [ "$LSBRELEASE" = "14.04" ] && [ -d /usr/lib/systemd ]; then SYSTEMD=0; INITD=1; CHKCONFIG=0; fi
+	if [ "${LSBRELEASE}" = "14.04" ] && [ -d /usr/lib/systemd ]; then SYSTEMD=0; INITD=1; CHKCONFIG=0; fi
+}
+
+Repeated_Prompt () {
+	set +e
+	echo "$1"
+	local RECREATED="N"
+	while [ "$RECREATED" != "Y" ] ; do
+		read ANS
+		case "$ANS" in
+		"y"|"Y"|"YES"|"yes"|"Yes") echo "Script will now continue";RECREATED="Y";;
+		"n"|"N"|"NO"|"No") echo "$1";;
+		*) echo "Input not valid, please try again or press Ctrl+C to exit script";;
+		esac
+	done
+	set -e
 }
 
 # platform detection
-MYPLATFORM="$(Platform_Detection)"
+MYPLATFORM=`Platform_Detection`
 echo "Platform: ${MYPLATFORM}"
 
 # upstart detection
-SYSTEMD=0;
-INITD=0;
-CHKCONFIG=0;
+SYSTEMD=0
+INITD=0
+CHKCONFIG=0
 System_Check
 
 # check we are running with sufficient permissions
 if [ "${MYPLATFORM}" = "Linux" -o "${MYPLATFORM}" = "OSX" -o "${MYPLATFORM}" = "AIX" -o "${MYPLATFORM}" = "HPUX" ]; then
-		if [ `id -u` -ne 0 ]; then echo "Please run as root (or using sudo)"; exit; fi
+	if [ `id -u` -ne 0 ]; then echo "Please run as root (or using sudo)"; exit; fi
 fi
 if [ "${MYPLATFORM}" = "SOLARIS" ]; then
 	if [ `/usr/bin/id | cut -d= -f2 | cut -d\( -f1` -ne 0 ]; then echo "Please run as root"; exit; fi
@@ -103,13 +118,12 @@ read ANS
 case $ANS in
 "y"|"Y"|"YES"|"yes"|"Yes") echo "assuming root user for service mode"; REALUSER="root";;
 "n"|"N"|"NO"|"No") echo "Enter non-root username (relevant only for user and/or virtual mode servers)"; read USERENTERED; REALUSER=${USERENTERED};;
-*) echo "Input not valid - assuming root"; REALUSER="root";; 
+*) echo "Input not valid - assuming root"; REALUSER="root";;
 esac
 
 echo "collecting details for: $REALUSER"
 if [ "${MYPLATFORM}" = "Linux" -o "${MYPLATFORM}" = "AIX" -o "${MYPLATFORM}" = "HPUX" ]; then
 	RCUHOMED=`cat /etc/passwd | grep \^$REALUSER\: | cut -d":" -f6`; else RCUHOMED=$HOME
-	
 	if [ ! $RCUHOMED ]; then echo "user $REALUSER home directory not found - assuming  /tmp"; RCUHOMED=/tmp; fi # if we can't get the user home directory, set it to /tmp so we don't throw errors
 fi
 
@@ -132,8 +146,8 @@ if [ "${SELINUX}" = "1" ]; then echo "SELinux Present"; fi
 
 # clean old data
 if [ -f ${TEMPDIR}/vncsupport-${HOSTNAME}.tar.gz ]; then
-	echo "removing old vncexplorer data"; 
-	rm ${TEMPDIR}/vncsupport-${HOSTNAME}.tar.gz ;
+	echo "removing old vncexplorer data"
+	rm ${TEMPDIR}/vncsupport-${HOSTNAME}.tar.gz
 fi
 
 # ensure STARTDIR and HOSTNAME are not empty
@@ -163,7 +177,8 @@ mkdir ${STARTDIR}/${HOSTNAME}/logs/system
 mkdir ${STARTDIR}/${HOSTNAME}/startup
 
 #enable debug logging
-echo "Enabling debug logging...";sleep 1;
+echo "Enabling debug logging..."
+sleep 1
 mkdir -p /etc/vnc/policy.d
 echo "Log=*:file:100" >> /etc/vnc/policy.d/common
 
@@ -171,8 +186,8 @@ echo "Log=*:file:100" >> /etc/vnc/policy.d/common
 # TO-DO: prompt user to recreate issue
 # restart service mode vncserver
 if [ "${MYPLATFORM}" = "Linux" ]; then
-	if type systemctl > /dev/null 2>&1; then systemctl restart vncserver-x11-serviced; fi;
-	if type initctl > /dev/null 2>&1; then /etc/init.d/vncserver-x11-serviced restart; fi;
+	if type systemctl > /dev/null 2>&1; then systemctl restart vncserver-x11-serviced; fi
+	if type initctl > /dev/null 2>&1; then /etc/init.d/vncserver-x11-serviced restart; fi
 fi
 if [ "${MYPLATFORM}" = "AIX" ]; then
 	: #to-do
@@ -189,20 +204,13 @@ if [ "${MYPLATFORM}" = "SOLARIS" ]; then
 fi
 
 # give service a chance to restart
-echo "Sleeping 5s to allow VNC Server to restart..."; sleep 5
+echo "Sleeping 5s to allow VNC Server to restart..."
+sleep 5
 
-echo "Please re-create the issue that you have reported to RealVNC Support"; sleep 5
+echo "Please re-create the issue that you have reported to RealVNC Support"
+sleep 5
 
-echo "Have you re-created the issue? (Y / N)?"
-RECREATED="N"
-while [ "$RECREATED" != "Y" ] ; do
-	read ANS
-	case "$ANS" in
-	"y"|"Y"|"YES"|"yes"|"Yes") echo "Script will now continue";RECREATED="Y";;
-	"n"|"N"|"NO"|"No") echo "Please re-create the issue";;
-	*) echo "Input not valid, please try again";;
-	esac
-done
+Repeated_Prompt "Have you re-created the issue? (Y / N)?"
 
 # copy relevant VNC configuration files
 if [ -d /etc/vnc ]; then cp -R /etc/vnc/* ${STARTDIR}/${HOSTNAME}/etc/vnc ; fi
@@ -237,7 +245,7 @@ if [ -f /etc/X11/vncserver-virtual.conf ]; then cp /etc/X11/vncserver-virtual.co
 # Capture system environment details
 # get linux version 
 if [ "${MYPLATFORM}" = "Linux" ]; then
-	cat /etc/*release > ${STARTDIR}/${HOSTNAME}/systemstate/linux-version.txt
+	cat /etc/*release > ${STARTDIR}/${HOSTNAME}/systemstate/linux-version.txt 2>/dev/null
 fi
 
 # get PCI hardware info for linux
@@ -251,25 +259,25 @@ if [ "${MYPLATFORM}" = "OSX" ]; then
 	if [ -x /usr/sbin/system_profiler ]; then echo "Getting Mac hardware info..."; /usr/sbin/system_profiler -detailLevel mini > ${STARTDIR}/${HOSTNAME}/systemstate/macintosh_hardware_info.txt; fi
 fi
 
-env > ${STARTDIR}/${HOSTNAME}/systemstate/userenv.txt
-uname -a > ${STARTDIR}/${HOSTNAME}/systemstate/sysinfo.txt
-umask > ${STARTDIR}/${HOSTNAME}/systemstate/umask.txt
-echo $ORIGPATH > ${STARTDIR}/${HOSTNAME}/systemstate/path.txt
+env > ${STARTDIR}/${HOSTNAME}/systemstate/userenv.txt 2>/dev/null
+uname -a > ${STARTDIR}/${HOSTNAME}/systemstate/sysinfo.txt 2>/dev/null
+umask > ${STARTDIR}/${HOSTNAME}/systemstate/umask.txt 2>/dev/null
+echo $ORIGPATH > ${STARTDIR}/${HOSTNAME}/systemstate/path.txt 2>/dev/null
 if [ -f /etc/release ]; then
-	cp /etc/release ${STARTDIR}/${HOSTNAME}/systemstate/release.txt;
+	cp /etc/release ${STARTDIR}/${HOSTNAME}/systemstate/release.txt 2>/dev/null
 fi
 
 # get X server details
 if [ "${MYPLATFORM}" = "Linux" ]; then
 	if [ -d /tmp/.X11-unix  -a `ls /tmp/.X11-unix | wc -l` -ne 0 ]; then 
 		DISPMGR=`lsof -t /tmp/.X11-unix/*`
-		ps -p $DISPMGR > ${STARTDIR}/${HOSTNAME}/systemstate/xservers.txt
+		ps -p $DISPMGR > ${STARTDIR}/${HOSTNAME}/systemstate/xservers.txt 2>/dev/null
 	fi
 fi
 
 # get root crontab
 if [ "${MYPLATFORM}" = "Linux" ]; then
-	crontab -u root -l > ${STARTDIR}/${HOSTNAME}/systemstate/rootcrontab.txt
+	crontab -u root -l > ${STARTDIR}/${HOSTNAME}/systemstate/rootcrontab.txt 2>/dev/null
 fi
 
 # get X session manager details
@@ -283,77 +291,77 @@ fi
 
 # get X settings info
 if [ "${MYPLATFORM}" = "Linux" ]; then
-	xset q > ${STARTDIR}/${HOSTNAME}/systemstate/xsettings.txt 2>&1
+	xset q > ${STARTDIR}/${HOSTNAME}/systemstate/xsettings.txt 2>/dev/null
 fi
 
 # list Xvnc control sockets in /tmp to help in identifying any permission issues
 if [ "${MYPLATFORM}" = "Linux" ]; then
-	find /tmp -name Xvnc* -type s -print > ${STARTDIR}/${HOSTNAME}/systemstate/tmp_virtualmode_sockets.txt
+	find /tmp -name Xvnc* -type s -print > ${STARTDIR}/${HOSTNAME}/systemstate/tmp_virtualmode_sockets.txt 2>/dev/null
 fi
 
 # get any /tmp/.X lock files (virtual mode daemon only)
 if [ "${MYPLATFORM}" = "Linux" ]; then
-	ls -al /tmp/.X*-lock > ${STARTDIR}/${HOSTNAME}/systemstate/tmp_virtualmodedaemon_locks.txt
+	ls -al /tmp/.X*-lock > ${STARTDIR}/${HOSTNAME}/systemstate/tmp_virtualmodedaemon_locks.txt 2>/dev/null
 fi
 
 # startup configuration
 # Check for SysV and SysD on linux.
 # initctl requires D-Bus so will not run over SSH tidily, check if it will fail and handle.
 if [ "${MYPLATFORM}" = "Linux" ]; then
-	if type systemctl > /dev/null 2>&1; then systemctl list-unit-files --type=service > ${STARTDIR}/${HOSTNAME}/startup/linux.systemd.txt; fi;
-	if type chkconfig > /dev/null 2>&1; then chkconfig --list > ${STARTDIR}/${HOSTNAME}/startup/linux.sysv.txt; fi;
+	if type systemctl > /dev/null 2>&1; then systemctl list-unit-files --type=service > ${STARTDIR}/${HOSTNAME}/startup/linux.systemd.txt; fi
+	if type chkconfig > /dev/null 2>&1; then chkconfig --list > ${STARTDIR}/${HOSTNAME}/startup/linux.sysv.txt; fi
 	if type initctl > /dev/null 2>&1; then 
 		if initctl list > /dev/null 2>&1; then
-			initctl list > ${STARTDIR}/${HOSTNAME}/startup/linux.upstart.txt; 
+			initctl list > ${STARTDIR}/${HOSTNAME}/startup/linux.upstart.txt
 		else
-			if [ -d /etc/init.d ]; then ls -al /etc/init.d > ${STARTDIR}/${HOSTNAME}/startup/linux.initd.txt; fi;
-			if [ -d /etc/rc0.d -o -d /etc/rc3.d ]; then ls -alR /etc/rc*.d > ${STARTDIR}/${HOSTNAME}/startup/linux.rc.txt; fi;
+			if [ -d /etc/init.d ]; then ls -al /etc/init.d > ${STARTDIR}/${HOSTNAME}/startup/linux.initd.txt; fi
+			if [ -d /etc/rc0.d -o -d /etc/rc3.d ]; then ls -alR /etc/rc*.d > ${STARTDIR}/${HOSTNAME}/startup/linux.rc.txt; fi
 		fi;
 	fi;
 fi
 if [ "${MYPLATFORM}" = "AIX" ]; then
-	lsitab -a > ${STARTDIR}/${HOSTNAME}/startup/aix.lsitab.txt;
-	ls -alR /etc/rc.d/ > ${STARTDIR}/${HOSTNAME}/startup/aix.rcd.txt;
+	lsitab -a > ${STARTDIR}/${HOSTNAME}/startup/aix.lsitab.txt 2>/dev/null
+	ls -alR /etc/rc.d/ > ${STARTDIR}/${HOSTNAME}/startup/aix.rcd.txt 2>/dev/null
 fi
 if [ "${MYPLATFORM}" = "HPUX" ]; then
-	if [ -d /sbin/init.d ]; then ls -al /sbin/init.d > ${STARTDIR}/${HOSTNAME}/startup/hpux.initd.txt; fi;
-	if [ -d /sbin/rc0.d -o -d /sbin/rc3.d ]; then ls -alR /etc/rc*.d > ${STARTDIR}/${HOSTNAME}/startup/hpux.rc.txt; fi;
+	if [ -d /sbin/init.d ]; then ls -al /sbin/init.d > ${STARTDIR}/${HOSTNAME}/startup/hpux.initd.txt; fi
+	if [ -d /sbin/rc0.d -o -d /sbin/rc3.d ]; then ls -alR /etc/rc*.d > ${STARTDIR}/${HOSTNAME}/startup/hpux.rc.txt; fi
 fi
 if [ "${MYPLATFORM}" = "OSX" ]; then
-	launchctl list > ${STARTDIR}/${HOSTNAME}/startup/darwin.txt;
+	launchctl list > ${STARTDIR}/${HOSTNAME}/startup/darwin.txt 2>/dev/null
 fi
 if [ "${MYPLATFORM}" = "SOLARIS" ]; then
-	if type svcs > /dev/null 2>&1; then svcs -a > ${STARTDIR}/${HOSTNAME}/startup/solaris.svcs.txt; fi;
-	if [ -d /etc/init.d ]; then ls -al /etc/init.d > ${STARTDIR}/${HOSTNAME}/startup/solaris.initd.txt; fi;
-	if [ -d /etc/rc0.d -o -d /etc/rc3.d ]; then ls -alR /etc/rc*.d > ${STARTDIR}/${HOSTNAME}/startup/solaric.rc.txt; fi;
+	if type svcs > /dev/null 2>&1; then svcs -a > ${STARTDIR}/${HOSTNAME}/startup/solaris.svcs.txt; fi
+	if [ -d /etc/init.d ]; then ls -al /etc/init.d > ${STARTDIR}/${HOSTNAME}/startup/solaris.initd.txt; fi
+	if [ -d /etc/rc0.d -o -d /etc/rc3.d ]; then ls -alR /etc/rc*.d > ${STARTDIR}/${HOSTNAME}/startup/solaric.rc.txt; fi
 fi
 
 # Gather VNC License information
 if [ "${MYPLATFORM}" = "Linux" ]; then 
 	if [ -f /usr/bin/vnclicense ]; then 
-		/usr/bin/vnclicense -list > ${STARTDIR}/${HOSTNAME}/systemstate/vnclicenselist.txt;
-		/usr/bin/vnclicense -check > ${STARTDIR}/${HOSTNAME}/systemstate/vnclicensecheck.txt;
-	fi;
+		/usr/bin/vnclicense -list > ${STARTDIR}/${HOSTNAME}/systemstate/vnclicenselist.txt 2>/dev/null
+		/usr/bin/vnclicense -check > ${STARTDIR}/${HOSTNAME}/systemstate/vnclicensecheck.txt 2>/dev/null
+	fi
 fi
 if [ "${MYPLATFORM}" = "SOLARIS" -o "${MYPLATFORM}" = "AIX" -o "${MYPLATFORM}" = "HPUX" ]; then
 	if [ -f /usr/local/bin/vnclicense ]; then
-		/usr/local/bin/vnclicense -list > ${STARTDIR}/${HOSTNAME}/systemstate/vnclicenselist.txt; 
-		/usr/local/bin/vnclicense -check > ${STARTDIR}/${HOSTNAME}/systemstate/vnclicensecheck.txt;
+		/usr/local/bin/vnclicense -list > ${STARTDIR}/${HOSTNAME}/systemstate/vnclicenselist.txt 2>/dev/null
+		/usr/local/bin/vnclicense -check > ${STARTDIR}/${HOSTNAME}/systemstate/vnclicensecheck.txt 2>/dev/null
 	fi;
 fi
 if [  "${MYPLATFORM}" = "OSX" ]; then
 	if [ -f /Library/vnc/vnclicense ]; then
-		/Library/vnc/vnclicense -list > ${STARTDIR}/${HOSTNAME}/systemstate/vnclicenselist.txt; 
-		/Library/vnc/vnclicense -check > ${STARTDIR}/${HOSTNAME}/systemstate/vnclicensecheck.txt;
+		/Library/vnc/vnclicense -list > ${STARTDIR}/${HOSTNAME}/systemstate/vnclicenselist.txt 2>/dev/null
+		/Library/vnc/vnclicense -check > ${STARTDIR}/${HOSTNAME}/systemstate/vnclicensecheck.txt 2>/dev/null
 	fi;
 fi
 
 # Gather running processes
 # Apply the Z modifier on SELinux systems to get appropriate information relevant to that.
 if [ "${SELINUX}" = "1" ]; then
-	ps -efZ | grep -i vnc | grep -v vncexplorer | grep -v grep > ${STARTDIR}/${HOSTNAME}/systemstate/vncprocs.txt;
+	ps -efZ | grep -i vnc | grep -v vncexplorer | grep -v grep > ${STARTDIR}/${HOSTNAME}/systemstate/vncprocs.txt
 else
-	ps -ef | grep -i vnc | grep -v vncexplorer | grep -v grep > ${STARTDIR}/${HOSTNAME}/systemstate/vncprocs.txt;
+	ps -ef | grep -i vnc | grep -v vncexplorer | grep -v grep > ${STARTDIR}/${HOSTNAME}/systemstate/vncprocs.txt
 fi
 
 # Gather network configuration
@@ -494,8 +502,8 @@ fi
 
 if [ -d ${RCUHOMED}/.vnc ]; then
 	if [ "${SELINUX}" = "1" ];
-	then ls -alZ ${RCUHOMED}/.vnc > ${STARTDIR}/${HOSTNAME}/filesystem/user-vnc.txt;
-	else ls -al ${RCUHOMED}/.vnc > ${STARTDIR}/${HOSTNAME}/filesystem/user-vnc.txt;
+	then ls -alZ ${RCUHOMED}/.vnc > ${STARTDIR}/${HOSTNAME}/filesystem/user-vnc.txt
+	else ls -al ${RCUHOMED}/.vnc > ${STARTDIR}/${HOSTNAME}/filesystem/user-vnc.txt
 	fi;
 fi
 
@@ -503,7 +511,7 @@ fi
 if [ "${MYPLATFORM}" = "SOLARIS" -o "${MYPLATFORM}" = "AIX" -o "${MYPLATFORM}" = "HPUX" ]; 
 	then 
 		if [ -d /usr/local/bin ];
-			then ls -al /usr/local/bin/vnc* >> ${STARTDIR}/${HOSTNAME}/filesystem/usr-local-bin.txt;
+			then ls -al /usr/local/bin/vnc* >> ${STARTDIR}/${HOSTNAME}/filesystem/usr-local-bin.txt
 		fi;
 fi
 
@@ -512,8 +520,8 @@ if [ "${MYPLATFORM}" = "Linux" ];
 	then 
 		if ls /usr/bin/vnc* > /dev/null 2>&1; then
 			if [ "${SELINUX}" = "1" ];
-				then ls -alZ /usr/bin/vnc* > ${STARTDIR}/${HOSTNAME}/filesystem/usr-bin.txt;
-				else ls -al /usr/bin/vnc* > ${STARTDIR}/${HOSTNAME}/filesystem/usr-bin.txt;
+				then ls -alZ /usr/bin/vnc* > ${STARTDIR}/${HOSTNAME}/filesystem/usr-bin.txt
+				else ls -al /usr/bin/vnc* > ${STARTDIR}/${HOSTNAME}/filesystem/usr-bin.txt
 			fi;
 		fi;
 fi
@@ -522,15 +530,15 @@ fi
 if [  "${MYPLATFORM}" = "OSX" ]; 
 	then 
 		if [ -d /Library/vnc ];
-			then ls -al /Library/vnc/ > ${STARTDIR}/${HOSTNAME}/filesystem/library-vnc.txt;
+			then ls -al /Library/vnc/ > ${STARTDIR}/${HOSTNAME}/filesystem/library-vnc.txt
 		fi;
 fi
 
 # if netcat exists, check for common VNC ports
 if [ "${MYPLATFORM}" = "Linux" -o "${MYPLATFORM}" = "OSX" ]; then
 	if type "nc"  > /dev/null 2>&1; then
-		nc -z -v -w5 localhost 5900-5909 2>${STARTDIR}/${HOSTNAME}/systemstate/netcat.txt;
-		nc -z -v -w5 localhost 5999 2>>${STARTDIR}/${HOSTNAME}/systemstate/netcat.txt;
+		nc -z -v -w5 localhost 5900-5909 2>${STARTDIR}/${HOSTNAME}/systemstate/netcat.txt
+		nc -z -v -w5 localhost 5999 2>>${STARTDIR}/${HOSTNAME}/systemstate/netcat.txt
 	fi
 fi
 
