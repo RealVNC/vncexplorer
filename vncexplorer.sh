@@ -61,7 +61,6 @@ System_Check () {
 }
 
 Repeated_Prompt () {
-	set +e
 	echo "$1"
 	local RECREATED="N"
 	while [ "$RECREATED" != "Y" ] ; do
@@ -72,7 +71,6 @@ Repeated_Prompt () {
 		*) echo "Input not valid, please try again or press Ctrl+C to exit script";;
 		esac
 	done
-	set -e
 }
 
 # platform detection
@@ -98,10 +96,10 @@ set +e
 echo "This script is designed to gather system data to assist RealVNC Support"
 echo "troubleshoot issues with RealVNC Server running on UNIX / Linux systems."
 echo ""
-echo "Data collected: "
+echo "Data collected:"
 echo "The contents of /.vnc, /etc/vnc, /etc/pam.d, current user .vnc directory,"
 echo "currently running processes, current user environment, system IP address"
-echo "information, system hardware details and vnc license information. "
+echo "information, system hardware details and vnc license information."
 echo "Private keys and chat history are NOT included"
 echo "Press enter to accept this and continue or press CTRL+C to cancel"
 read accept
@@ -137,6 +135,7 @@ echo "Running from: ${STARTDIR} as user: ${CURRUSER}"
 HOSTNAME=`hostname`
 echo "HOSTNAME: ${HOSTNAME}"
 TEMPDIR=/var/tmp/vncexplorer
+
 if [ ! -d ${TEMPDIR} ]; then mkdir -p $TEMPDIR; fi
 
 # identify if SELinux is installed on the machine
@@ -156,7 +155,7 @@ if [ -z ${HOSTNAME} ]; then echo "Environment error encountered. Aborting..."; e
 
 # warn user that this exists - do they want to remove or keep?
 if [ -d ${STARTDIR}/${HOSTNAME} ]; then echo "$STARTDIR/$HOSTNAME exists - CTRL+C to cancel this script or enter to continue (${STARTDIR}/${HOSTNAME} will be deleted)"; read accept2; fi
-if [ -d ${STARTDIR}/${HOSTNAME} ]; then rm -rf ${STARTDIR}/${HOSTNAME} ; fi
+if [ -d ${STARTDIR}/${HOSTNAME} ]; then rm -rf ${STARTDIR}/${HOSTNAME}; fi
 
 # create initial directory structure
 set +e
@@ -204,11 +203,11 @@ if [ "${MYPLATFORM}" = "SOLARIS" ]; then
 fi
 
 # give service a chance to restart
-echo "Sleeping 5s to allow VNC Server to restart..."
-sleep 5
+echo "Sleeping 2s to allow VNC Server to restart..."
+sleep 2
 
 echo "Please re-create the issue that you have reported to RealVNC Support"
-sleep 5
+sleep 2
 
 Repeated_Prompt "Have you re-created the issue? (Y / N)?"
 
@@ -270,7 +269,7 @@ fi
 # get X server details
 if [ "${MYPLATFORM}" = "Linux" ]; then
 	if [ -d /tmp/.X11-unix  -a `ls /tmp/.X11-unix | wc -l` -ne 0 ]; then 
-		DISPMGR=`lsof -t /tmp/.X11-unix/*`
+		if type lsof > /dev/null 2>&1; then DISPMGR=`lsof -t /tmp/.X11-unix/*`; else echo "lsof not found, please install this using your preferred package manager"; exit 1; fi
 		ps -p $DISPMGR > ${STARTDIR}/${HOSTNAME}/systemstate/xservers.txt 2>/dev/null
 	fi
 fi
@@ -376,41 +375,41 @@ fi
 
 # Process to Port mapping.
 if [ "${MYPLATFORM}" = "Linux" ]; then
-	netstat -lntp > ${STARTDIR}/${HOSTNAME}/systemstate/netstat.linux.txt;
+	netstat -lntp > ${STARTDIR}/${HOSTNAME}/systemstate/netstat.linux.txt
 fi
 
 if [ "${MYPLATFORM}" = "SOLARIS" ]; then
 	for x in `ps -ef | grep vnc | awk '{ print $2}'`; do
-		ps -fp $x | grep $x > ${STARTDIR}/${HOSTNAME}/systemstate/netstat.solaris.txt; 
-		pfiles $x | grep "port:" > ${STARTDIR}/${HOSTNAME}/systemstate/netstat.solaris.txt; 
-	done;
+		ps -fp $x | grep $x > ${STARTDIR}/${HOSTNAME}/systemstate/netstat.solaris.txt
+		pfiles $x | grep "port:" > ${STARTDIR}/${HOSTNAME}/systemstate/netstat.solaris.txt
+	done
 	#Identify PIDS for vnc, then output "ps -fp" and "pfiles" for each entry
 fi
 
 if [ "${MYPLATFORM}" = "OSX" ]; then
-	lsof -i > ${STARTDIR}/${HOSTNAME}/systemstate/netstat.darwin.txt;
+	lsof -i > ${STARTDIR}/${HOSTNAME}/systemstate/netstat.darwin.txt
 fi
 
 # power saving settings
 # users will have issues if their remote machine has gone to sleep, so let's get power saving settings
 # on OSX do through systemsetup -getcomputersleep
 if [ "${MYPLATFORM}" = "OSX" ]; then
-	/usr/sbin/systemsetup -getcomputersleep > ${STARTDIR}/${HOSTNAME}/systemstate/macos.sleepsetting.txt;
+	/usr/sbin/systemsetup -getcomputersleep > ${STARTDIR}/${HOSTNAME}/systemstate/macos.sleepsetting.txt
 fi
 
 # Maintainers: we do *NOT* want to run pfiles against other processes
 # doing so could potentially cause stability issues.
 if [ "${MYPLATFORM}" = "HPUX" ]; then
 	for x in `ps -ef | grep vnc | grep -v grep | grep -v vncexplorer | awk '{ print $2}'`; do
-		ps -fp $x | grep $x >> ${STARTDIR}/${HOSTNAME}/systemstate/netstat.hpux.txt;
-		pfiles $x | grep "port =" | awk '{print "          " $3}' >> ${STARTDIR}/${HOSTNAME}/systemstate/netstat.hpux.txt;
-	done;
-fi;
+		ps -fp $x | grep $x >> ${STARTDIR}/${HOSTNAME}/systemstate/netstat.hpux.txt
+		pfiles $x | grep "port =" | awk '{print "          " $3}' >> ${STARTDIR}/${HOSTNAME}/systemstate/netstat.hpux.txt
+	done
+fi
 
 # We can't use the pfiles trick on AIX, so lets use netstat then pass the sockets to rmsock to return the information we need.
 if [ "${MYPLATFORM}" = "AIX" ]; then
 	echo "----------------------------------------------------------------------------" >> ${STARTDIR}/${HOSTNAME}/systemstate/netstat.aix.txt
-	printf "| %-20s | %-15s | Protocol | %-20s |\n" "Process" "PID" "Listening On" >> ${STARTDIR}/${HOSTNAME}/systemstate/netstat.aix.txt;
+	printf "| %-20s | %-15s | Protocol | %-20s |\n" "Process" "PID" "Listening On" >> ${STARTDIR}/${HOSTNAME}/systemstate/netstat.aix.txt
 	echo "----------------------------------------------------------------------------" >> ${STARTDIR}/${HOSTNAME}/systemstate/netstat.aix.txt
 
 	netstat -Ana | awk '
@@ -448,56 +447,56 @@ if type iptables > /dev/null 2>&1; then iptables -L > ${STARTDIR}/${HOSTNAME}/sy
 if type dpkg > /dev/null 2>&1; then dpkg -l | grep -i vnc > ${STARTDIR}/${HOSTNAME}/systemstate/packages.deb.txt; fi
 if type rpm > /dev/null 2>&1; then rpm -qa --qf '%{NAME}-%{VERSION}-%{RELEASE} (%{ARCH})\n' | grep -i vnc > ${STARTDIR}/${HOSTNAME}/systemstate/packages.rpm.txt; fi
 if [ "${MYPLATFORM}" = "SOLARIS" ]; then
-	pkginfo | grep -i vnc >> ${STARTDIR}/${HOSTNAME}/systemstate/packages.solaris.txt;
+	pkginfo | grep -i vnc >> ${STARTDIR}/${HOSTNAME}/systemstate/packages.solaris.txt
 elif [ "${MYPLATFORM}" = "HPUX" ]; then
-	/usr/sbin/swlist | grep -i vnc >> ${STARTDIR}/${HOSTNAME}/systemstate/packages.hpux.txt;
+	/usr/sbin/swlist | grep -i vnc >> ${STARTDIR}/${HOSTNAME}/systemstate/packages.hpux.txt
 elif [ "${MYPLATFORM}" = "OSX" ]; then
-	pkgutil --pkgs >> ${STARTDIR}/${HOSTNAME}/systemstate/packages.darwin.txt;
+	pkgutil --pkgs >> ${STARTDIR}/${HOSTNAME}/systemstate/packages.darwin.txt
 fi
 
 # Pull any log files which exist.
 if [ "${MYPLATFORM}" = "OSX" ]; then
-	if ls /Library/Logs/vnc*.log > /dev/null 2>&1; then cp /Library/Logs/vnc*.log ${STARTDIR}/${HOSTNAME}/logs/system/; fi;
-	if ls /Library/Logs/vnc*.log.bak > /dev/null 2>&1; then cp /Library/Logs/vnc*.log.bak ${STARTDIR}/${HOSTNAME}/logs/system/; fi;
-	if ls ${HOME}/Library/Logs/vnc/*.log > /dev/null 2>&1; then cp ${HOME}/Library/Logs/vnc/*.log ${STARTDIR}/${HOSTNAME}/logs/user/; fi;
-	if ls ${HOME}/Library/Logs/vnc/*.log.bak > /dev/null 2>&1; then cp ${HOME}/Library/Logs/vnc/*.log.bak ${STARTDIR}/${HOSTNAME}/logs/user/; fi;
+	if ls /Library/Logs/vnc*.log > /dev/null 2>&1; then cp /Library/Logs/vnc*.log ${STARTDIR}/${HOSTNAME}/logs/system/; fi
+	if ls /Library/Logs/vnc*.log.bak > /dev/null 2>&1; then cp /Library/Logs/vnc*.log.bak ${STARTDIR}/${HOSTNAME}/logs/system/; fi
+	if ls ${HOME}/Library/Logs/vnc/*.log > /dev/null 2>&1; then cp ${HOME}/Library/Logs/vnc/*.log ${STARTDIR}/${HOSTNAME}/logs/user/; fi
+	if ls ${HOME}/Library/Logs/vnc/*.log.bak > /dev/null 2>&1; then cp ${HOME}/Library/Logs/vnc/*.log.bak ${STARTDIR}/${HOSTNAME}/logs/user/; fi
 else
-	if ls /var/log/vnc*.log > /dev/null 2>&1; then cp /var/log/vnc*.log ${STARTDIR}/${HOSTNAME}/logs/system/; fi;
-	if ls /var/log/vnc*.log.bak > /dev/null 2>&1; then cp /var/log/vnc*.log.bak ${STARTDIR}/${HOSTNAME}/logs/system/; fi;
+	if ls /var/log/vnc*.log > /dev/null 2>&1; then cp /var/log/vnc*.log ${STARTDIR}/${HOSTNAME}/logs/system/; fi
+	if ls /var/log/vnc*.log.bak > /dev/null 2>&1; then cp /var/log/vnc*.log.bak ${STARTDIR}/${HOSTNAME}/logs/system/; fi
 fi
 
 # VNC Directory long listing (permissions, selinux contexts)
 if [ -d /etc/vnc ]; then
 	if [ "${SELINUX}" = "1" ];
-	then ls -alZ /etc/vnc > ${STARTDIR}/${HOSTNAME}/filesystem/etc-vnc.txt; 
-	else ls -al /etc/vnc > ${STARTDIR}/${HOSTNAME}/filesystem/etc-vnc.txt;
+	then ls -alZ /etc/vnc > ${STARTDIR}/${HOSTNAME}/filesystem/etc-vnc.txt
+	else ls -al /etc/vnc > ${STARTDIR}/${HOSTNAME}/filesystem/etc-vnc.txt
 	fi;
 fi
 
 # /root/.vnc
 if [ -d ~/.vnc ]; then
 	if [ "${SELINUX}" = "1" ];
-	then ls -alZ ~/.vnc > ${STARTDIR}/${HOSTNAME}/filesystem/root-.vnc.txt;
-	else ls -al ~/.vnc > ${STARTDIR}/${HOSTNAME}/filesystem/root-.vnc.txt;
+	then ls -alZ ~/.vnc > ${STARTDIR}/${HOSTNAME}/filesystem/root-.vnc.txt
+	else ls -al ~/.vnc > ${STARTDIR}/${HOSTNAME}/filesystem/root-.vnc.txt
 	fi;
 fi
 
 # container for home directories (Linux, AIX, HPUX)
 if [ -d /home ]; then
 	if [ "${SELINUX}" = "1" ]; 
-	then ls -lZ /home > ${STARTDIR}/${HOSTNAME}/filesystem/home.txt; 
-	else ls -l /home > ${STARTDIR}/${HOSTNAME}/filesystem/home.txt; 
+	then ls -lZ /home > ${STARTDIR}/${HOSTNAME}/filesystem/home.txt
+	else ls -l /home > ${STARTDIR}/${HOSTNAME}/filesystem/home.txt
 	fi;
 fi
 
 # container for home directories (Darwin)
 if [ -d /Users ]; then
-	ls -al /Users > ${STARTDIR}/${HOSTNAME}/filesystem/users.txt;
+	ls -al /Users > ${STARTDIR}/${HOSTNAME}/filesystem/users.txt
 fi
 
 # container for home directories (Solaris)
 if [ -d /export/home ]; then
-	ls -al /export/home > ${STARTDIR}/${HOSTNAME}/filesystem/export.home.txt;
+	ls -al /export/home > ${STARTDIR}/${HOSTNAME}/filesystem/export.home.txt
 fi
 
 if [ -d ${RCUHOMED}/.vnc ]; then
