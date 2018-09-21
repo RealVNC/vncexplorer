@@ -179,7 +179,21 @@ mkdir ${STARTDIR}/${HOSTNAME}/startup
 echo "Enabling debug logging..."
 sleep 1
 mkdir -p /etc/vnc/policy.d
-echo "Log=*:file:100" >> /etc/vnc/policy.d/common
+
+POLICYEXISTS=0
+EXISTINGLOG=""
+
+if [ -f /etc/vnc/policy.d/common ] ; then
+	POLICYEXISTS=1
+	if grep -q "Log=" /etc/vnc/policy.d/common ; then
+		EXISTINGLOG=`grep "Log=" /etc/vnc/policy.d/common`
+		sed -i 's/^Log=.*/Log=*:file:100/g' /etc/vnc/policy.d/common
+	else
+		echo "Log=*:file:100" >> /etc/vnc/policy.d/common
+	fi
+else
+	echo "Log=*:file:100" >> /etc/vnc/policy.d/common
+fi
 
 # assume we want to restart VNC Server for now
 # TO-DO: prompt user to recreate issue
@@ -553,6 +567,14 @@ fi
 # Clean up
 echo "cleaning up ${STARTDIR}/${HOSTNAME}. "
 rm -rf ${STARTDIR}/${HOSTNAME}
+
+echo "Reverting logging to pre-script value"
+if [ "${POLICYEXISTS}" = 0 ] ; then
+	rm -f /etc/vnc/policy.d/common
+else
+	sed -i 's/^Log=.*/'"${EXISTINGLOG}"'/g' /etc/vnc/policy.d/common
+fi
+
 
 echo ""
 echo "Please attach the following file to your RealVNC Customer Support ticket:"
