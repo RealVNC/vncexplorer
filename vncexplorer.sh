@@ -54,7 +54,7 @@ System_Check () {
 
 	# echo "type: systemd: $SYSTEMD chkconfig: $CHKCONFIG init: $INITD"
 	# on some systems, initctl doesn't exist but it is still init based. Handle this:
-	if [ "${SYSTEMD}" = 0 ] && [ "${INITD}" = 0 ] && [ "${CHKCONFIG}" = 0 ] ; then INITD=1; fi
+	if [ "${SYSTEMD}" = "0" ] && [ "${INITD}" = "0" ] && [ "${CHKCONFIG}" = "0" ] ; then INITD=1; fi
 	# we need to work out if we're running on Ubuntu 14.04 as we have a special case for that: 
 	LSBRELEASE=`lsb_release -r | awk '{print $2}'`
 	if [ "${LSBRELEASE}" = "14.04" ] && [ -d /usr/lib/systemd ]; then SYSTEMD=0; INITD=1; CHKCONFIG=0; fi
@@ -109,12 +109,14 @@ set -e
 STARTDIR=`pwd`
 CURRUSER=`whoami`
 
+SERVICEMODE=0
+
 # prompt for username to collect $HOME/.vnc 
 echo "Are you diagnosing an issue with Service Mode (Y / N)?"
 echo "(If unsure, RealVNC Support will advise as required)"
 read ANS
 case $ANS in
-"y"|"Y"|"YES"|"yes"|"Yes") echo "assuming root user for service mode"; REALUSER="root";;
+"y"|"Y"|"YES"|"yes"|"Yes") echo "assuming root user for service mode"; REALUSER="root"; SERVICEMODE=1;;
 "n"|"N"|"NO"|"No") echo "Enter non-root username (relevant only for user and/or virtual mode servers)"; read USERENTERED; REALUSER=${USERENTERED};;
 *) echo "Input not valid - assuming root"; REALUSER="root";;
 esac
@@ -150,8 +152,8 @@ if [ -f ${TEMPDIR}/vncsupport-${HOSTNAME}.tar.gz ]; then
 fi
 
 # ensure STARTDIR and HOSTNAME are not empty
-if [ -z ${STARTDIR} ]; then echo "Environment error encountered. Aborting..."; exit ; fi
-if [ -z ${HOSTNAME} ]; then echo "Environment error encountered. Aborting..."; exit ; fi
+if [ -z ${STARTDIR} ]; then echo "Environment error encountered (output directory could not be created /tmp). Aborting..."; exit ; fi
+if [ -z ${HOSTNAME} ]; then echo "Environment error encountered (no hostname found). Aborting..."; exit ; fi
 
 # warn user that this exists - do they want to remove or keep?
 if [ -d ${STARTDIR}/${HOSTNAME} ]; then echo "$STARTDIR/$HOSTNAME exists - CTRL+C to cancel this script or enter to continue (${STARTDIR}/${HOSTNAME} will be deleted)"; read accept2; fi
@@ -175,9 +177,10 @@ mkdir ${STARTDIR}/${HOSTNAME}/logs/user
 mkdir ${STARTDIR}/${HOSTNAME}/logs/system
 mkdir ${STARTDIR}/${HOSTNAME}/startup
 
+# check user is happy for us to restart VNC Server
+Repeated_Prompt "VNC Server needs to apply debug logging. Is this OK? (Y / N) All existing connections to VNC Server will be interrupted"
+
 #enable debug logging
-echo "Enabling debug logging..."
-sleep 1
 mkdir -p /etc/vnc/policy.d
 
 POLICYEXISTS=0
@@ -196,28 +199,30 @@ else
 fi
 
 # assume we want to restart VNC Server for now
-# TO-DO: prompt user to recreate issue
 # restart service mode vncserver
-if [ "${MYPLATFORM}" = "Linux" ]; then
-	if type systemctl > /dev/null 2>&1; then systemctl restart vncserver-x11-serviced; fi
-	if type initctl > /dev/null 2>&1; then /etc/init.d/vncserver-x11-serviced restart; fi
-fi
-if [ "${MYPLATFORM}" = "AIX" ]; then
-	: #to-do
-fi
-if [ "${MYPLATFORM}" = "HPUX" ]; then
-	: #to-do
-fi
-if [ "${MYPLATFORM}" = "OSX" ]; then
-	/Library/vnc/vncserver -service -stop
-	VNC\ Server.app/Contents/MacOS/vncserver_service
-fi
-if [ "${MYPLATFORM}" = "SOLARIS" ]; then
-	: #to-do
+if [ "${SERVICEMODE}" = "1" ]; then
+	if [ "${MYPLATFORM}" = "Linux" ]; then
+		if [ "${SYSTEMD}" = "1" ]; then
+			systemctl restart vncserver-x11-serviced
+		else
+			/etc/init.d/vncserver-x11-serviced restart
+		fi
+	fi
+	if [ "${MYPLATFORM}" = "AIX" ]; then
+		: #to-do
+	fi
+	if [ "${MYPLATFORM}" = "HPUX" ]; then
+		: #to-do
+	fi
+	if [ "${MYPLATFORM}" = "OSX" ]; then
+		/Library/vnc/vncserver -service -stop
+		VNC\ Server.app/Contents/MacOS/vncserver_service
+	fi
+	if [ "${MYPLATFORM}" = "SOLARIS" ]; then
+		: #to-do
+	fi
 fi
 
-# give service a chance to restart
-echo "Sleeping 2s to allow VNC Server to restart..."
 sleep 2
 
 echo "Please re-create the issue that you have reported to RealVNC Support"
@@ -225,20 +230,20 @@ sleep 2
 
 Repeated_Prompt "Have you re-created the issue? (Y / N)?"
 
-# copy relevant VNC configuration files
+# copy relevant system /etc VNC configuration files
 if [ -d /etc/vnc ]; then cp -R /etc/vnc/* ${STARTDIR}/${HOSTNAME}/etc/vnc ; fi
 
 # OSX doesn't support virtual mode so we don't need xstartup for this platform
 if [ -d $RCUHOMED/.vnc ]; then 
 	if [ "${MYPLATFORM}" != "OSX" ]; then
-		if [ -f $RCUHOMED/.vnc/xstartup ]; then cp $RCUHOMED/.vnc/xstartup ${STARTDIR}/${HOSTNAME}/userdotvnc ; fi
-		if [ -f $RCUHOMED/.vnc/xstartup.custom ]; then cp $RCUHOMED/.vnc/xstartup.custom ${STARTDIR}/${HOSTNAME}/userdotvnc ; fi
+		if [ -f $RCUHOMED/.vnc/xstartup ]; then cp $RCUHOMED/.vnc/xstartup ${STARTDIR}/${HOSTNAME}/userdotvnc/xstartup ; fi
+		if [ -f $RCUHOMED/.vnc/xstartup.custom ]; then cp $RCUHOMED/.vnc/xstartup.custom ${STARTDIR}/${HOSTNAME}/userdotvnc/xstartup.custom ; fi
 		if [ -f $RCUHOMED/vncserver-virtual.conf ]; then cp $RCUHOMED/vncserver-virtual.conf ${STARTDIR}/${HOSTNAME}/vncserver-virtual.conf ; fi
 	else
 		if [ -d /var/root/.vnc/config.d ]; then cp -R /var/root/.vnc/config.d ${STARTDIR}/${HOSTNAME}/rootdotvnc; fi
 	fi
 	if ls ${RCUHOMED}/.vnc/*.log 1> /dev/null 2>&1; then cp $RCUHOMED/.vnc/*.log ${STARTDIR}/${HOSTNAME}/logs/user; fi
-	if [ -f $RCUHOMED/.vnc/config ]; then cp $RCUHOMED/.vnc/config ${STARTDIR}/${HOSTNAME}/userdotvnc ; fi
+	if [ -f $RCUHOMED/.vnc/config ]; then cp $RCUHOMED/.vnc/config ${STARTDIR}/${HOSTNAME}/userdotvnc/config ; fi
 	if [ -d $RCUHOMED/.vnc/config.d ]; then cp -R $RCUHOMED/.vnc/config.d ${STARTDIR}/${HOSTNAME}/userdotvnc; fi
 fi
 
@@ -456,10 +461,13 @@ fi
 if type sestatus > /dev/null 2>&1; then sestatus > ${STARTDIR}/${HOSTNAME}/systemstate/sestatus.txt; fi
 if type iptables > /dev/null 2>&1; then iptables -L > ${STARTDIR}/${HOSTNAME}/systemstate/iptables.txt; fi
 
+#Output runlevel to a file
+if type runlevel > /dev/null 2>&1; then runlevel > ${STARTDIR}/${HOSTNAME}/systemstate/runlevel.txt; fi
+
 # installed packages
 # No check for AIX at the current time. Use the binary file listing.
-if type dpkg > /dev/null 2>&1; then dpkg -l | grep -i vnc > ${STARTDIR}/${HOSTNAME}/systemstate/packages.deb.txt; fi
-if type rpm > /dev/null 2>&1; then rpm -qa --qf '%{NAME}-%{VERSION}-%{RELEASE} (%{ARCH})\n' | grep -i vnc > ${STARTDIR}/${HOSTNAME}/systemstate/packages.rpm.txt; fi
+if type dpkg > /dev/null 2>&1; then dpkg -l | grep -i vnc > ${STARTDIR}/${HOSTNAME}/systemstate/packages.vnc.deb.txt; dpkg -l | grep -i xserver-xorg-video-dummy > ${STARTDIR}/${HOSTNAME}/systemstate/packages.drv.txt; fi
+if type rpm > /dev/null 2>&1; then rpm -qa --qf '%{NAME}-%{VERSION}-%{RELEASE} (%{ARCH})\n' | grep -i vnc > ${STARTDIR}/${HOSTNAME}/systemstate/packages.vnc.rpm.txt; rpm -qa --qf '%{NAME}-%{VERSION}-%{RELEASE} (%{ARCH})\n' | grep -i xorg-x11-drv-dummy > ${STARTDIR}/${HOSTNAME}/systemstate/packages.drv.rpm.txt; fi
 if [ "${MYPLATFORM}" = "SOLARIS" ]; then
 	pkginfo | grep -i vnc >> ${STARTDIR}/${HOSTNAME}/systemstate/packages.solaris.txt
 elif [ "${MYPLATFORM}" = "HPUX" ]; then
@@ -477,6 +485,7 @@ if [ "${MYPLATFORM}" = "OSX" ]; then
 else
 	if ls /var/log/vnc*.log > /dev/null 2>&1; then cp /var/log/vnc*.log ${STARTDIR}/${HOSTNAME}/logs/system/; fi
 	if ls /var/log/vnc*.log.bak > /dev/null 2>&1; then cp /var/log/vnc*.log.bak ${STARTDIR}/${HOSTNAME}/logs/system/; fi
+	if ls /var/log/Xorg*.log > /dev/null 2>&1; then cp /var/log/Xorg*.log.bak ${STARTDIR}/${HOSTNAME}/logs/system/; fi
 fi
 
 # VNC Directory long listing (permissions, selinux contexts)
@@ -569,7 +578,7 @@ echo "cleaning up ${STARTDIR}/${HOSTNAME}. "
 rm -rf ${STARTDIR}/${HOSTNAME}
 
 echo "Reverting logging to pre-script value"
-if [ "${POLICYEXISTS}" = 0 ] ; then
+if [ "${POLICYEXISTS}" = "0" ] ; then
 	rm -f /etc/vnc/policy.d/common
 else
 	sed -i 's/^Log=.*/'"${EXISTINGLOG}"'/g' /etc/vnc/policy.d/common
