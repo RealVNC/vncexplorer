@@ -177,15 +177,11 @@ mkdir ${STARTDIR}/${HOSTNAME}/logs/user
 mkdir ${STARTDIR}/${HOSTNAME}/logs/system
 mkdir ${STARTDIR}/${HOSTNAME}/startup
 
-# check user is happy for us to restart VNC Server
-Repeated_Prompt "VNC Server needs to apply debug logging. Is this OK? (Y / N) All existing connections to VNC Server will be interrupted"
-
-#enable debug logging
-mkdir -p /etc/vnc/policy.d
-
 POLICYEXISTS=0
 EXISTINGLOG=""
 
+#enable debug logging
+mkdir -p /etc/vnc/policy.d
 if [ -f /etc/vnc/policy.d/common ] ; then
 	POLICYEXISTS=1
 	if grep -q "Log=" /etc/vnc/policy.d/common ; then
@@ -198,9 +194,11 @@ else
 	echo "Log=*:file:100" >> /etc/vnc/policy.d/common
 fi
 
-# assume we want to restart VNC Server for now
 # restart service mode vncserver
-if [ "${SERVICEMODE}" = "1" ]; then
+if [ "${SERVICEMODE}" = "1" ]; then	
+	# check user is happy for us to restart VNC Server
+	Repeated_Prompt "VNC Server needs to restart apply debug logging. Is this OK? (Y / N) All existing connections to VNC Server will be interrupted."
+	
 	if [ "${MYPLATFORM}" = "Linux" ]; then
 		if [ "${SYSTEMD}" = "1" ]; then
 			systemctl restart vncserver-x11-serviced
@@ -214,12 +212,23 @@ if [ "${SERVICEMODE}" = "1" ]; then
 	if [ "${MYPLATFORM}" = "HPUX" ]; then
 		: #to-do
 	fi
+	if [ "${MYPLATFORM}" = "SOLARIS" ]; then
+		: #to-do
+	fi
 	if [ "${MYPLATFORM}" = "OSX" ]; then
 		/Library/vnc/vncserver -service -stop
 		VNC\ Server.app/Contents/MacOS/vncserver_service
 	fi
-	if [ "${MYPLATFORM}" = "SOLARIS" ]; then
-		: #to-do
+else
+	#test if Virtual Mode daemon is running
+	if [ "${MYPLATFORM}" = "Linux" ]; then
+		if ps -eF | grep -q "[v]ncserver-virtuald" ; then
+			if [ "${SYSTEMD}" = "1" ]; then
+					systemctl restart vncserver-virtuald
+				else
+					/etc/init.d/vncserver-virtuald restart
+			fi
+		fi
 	fi
 fi
 
@@ -252,6 +261,10 @@ if [ -d /.vnc ]; then cp -R /.vnc/* ${STARTDIR}/${HOSTNAME}/systemdotvnc; fi
 
 # get root .vnc
 if [ -d /root/.vnc/config.d ]; then cp -R /root/.vnc/config.d/* ${STARTDIR}/${HOSTNAME}/rootdotvnc/config.d; fi
+
+find ${STARTDIR}/${HOSTNAME} -type f -name '*.key' -exec rm "{}" +
+find ${STARTDIR}/${HOSTNAME} -type f -name '*.pkg' -exec rm "{}" +
+find ${STARTDIR}/${HOSTNAME} -type f -name '*.bed' -exec rm "{}" +
 
 # copy PAM rules
 if [ -f /etc/pam.conf ]; then cp /etc/pam.conf ${STARTDIR}/${HOSTNAME}/etc/pam.conf; fi
@@ -485,7 +498,8 @@ if [ "${MYPLATFORM}" = "OSX" ]; then
 else
 	if ls /var/log/vnc*.log > /dev/null 2>&1; then cp /var/log/vnc*.log ${STARTDIR}/${HOSTNAME}/logs/system/; fi
 	if ls /var/log/vnc*.log.bak > /dev/null 2>&1; then cp /var/log/vnc*.log.bak ${STARTDIR}/${HOSTNAME}/logs/system/; fi
-	if ls /var/log/Xorg*.log > /dev/null 2>&1; then cp /var/log/Xorg*.log.bak ${STARTDIR}/${HOSTNAME}/logs/system/; fi
+	if ls /var/log/Xorg*.log > /dev/null 2>&1; then cp /var/log/Xorg*.log ${STARTDIR}/${HOSTNAME}/logs/system/; fi
+	if ls /var/log/Xorg*.log.bak > /dev/null 2>&1; then cp /var/log/Xorg*.log.bak ${STARTDIR}/${HOSTNAME}/logs/system/; fi
 fi
 
 # VNC Directory long listing (permissions, selinux contexts)
