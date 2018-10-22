@@ -217,7 +217,7 @@ if [ "${SERVICEMODE}" = "1" ]; then
 	fi
 	if [ "${MYPLATFORM}" = "OSX" ]; then
 		/Library/vnc/vncserver -service -stop
-		VNC\ Server.app/Contents/MacOS/vncserver_service
+		/Applications/RealVNC/VNC\ Server.app/Contents/MacOS/vncserver_service
 	fi
 else
 	#test if Virtual Mode daemon is running
