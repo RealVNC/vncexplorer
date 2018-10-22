@@ -81,7 +81,10 @@ echo "Platform: ${MYPLATFORM}"
 SYSTEMD=0
 INITD=0
 CHKCONFIG=0
-System_Check
+
+if [ "${MYPLATFORM}" = "Linux" ]; then
+	System_Check
+fi
 
 # check we are running with sufficient permissions
 if [ "${MYPLATFORM}" = "Linux" -o "${MYPLATFORM}" = "OSX" -o "${MYPLATFORM}" = "AIX" -o "${MYPLATFORM}" = "HPUX" ]; then
