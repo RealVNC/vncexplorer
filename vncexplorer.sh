@@ -62,7 +62,7 @@ System_Check () {
 
 Repeated_Prompt () {
 	echo "$1"
-	local RECREATED="N"
+	RECREATED="N"
 	while [ "$RECREATED" != "Y" ] ; do
 		read ANS
 		case "$ANS" in
