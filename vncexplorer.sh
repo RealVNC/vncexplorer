@@ -183,18 +183,20 @@ mkdir ${STARTDIR}/${HOSTNAME}/startup
 POLICYEXISTS=0
 EXISTINGLOG=""
 
-#enable debug logging
-mkdir -p /etc/vnc/policy.d
-if [ -f /etc/vnc/policy.d/common ] ; then
-	POLICYEXISTS=1
-	if grep -q "Log=" /etc/vnc/policy.d/common ; then
-		EXISTINGLOG=`grep "Log=" /etc/vnc/policy.d/common`
-		sed -i 's/^Log=.*/Log=*:file:100/g' /etc/vnc/policy.d/common
+if [ "${MYPLATFORM}" = "Linux" -o "${MYPLATFORM}" = "OSX" ]; then
+	#enable debug logging
+	mkdir -p /etc/vnc/policy.d
+	if [ -f /etc/vnc/policy.d/common ] ; then
+		POLICYEXISTS=1
+		if grep -q "Log=" /etc/vnc/policy.d/common ; then
+			EXISTINGLOG=`grep "Log=" /etc/vnc/policy.d/common`
+			sed -i 's/^Log=.*/Log=*:file:100/g' /etc/vnc/policy.d/common
+		else
+			echo "Log=*:file:100" >> /etc/vnc/policy.d/common
+		fi
 	else
 		echo "Log=*:file:100" >> /etc/vnc/policy.d/common
 	fi
-else
-	echo "Log=*:file:100" >> /etc/vnc/policy.d/common
 fi
 
 # restart service mode vncserver
@@ -594,11 +596,14 @@ fi
 echo "cleaning up ${STARTDIR}/${HOSTNAME}. "
 rm -rf ${STARTDIR}/${HOSTNAME}
 
-echo "Reverting logging to pre-script value"
-if [ "${POLICYEXISTS}" = "0" ] ; then
-	rm -f /etc/vnc/policy.d/common
-else
-	sed -i 's/^Log=.*/'"${EXISTINGLOG}"'/g' /etc/vnc/policy.d/common
+if [ "${MYPLATFORM}" = "Linux" -o "${MYPLATFORM}" = "OSX" ]; then
+	
+	echo "Reverting logging to pre-script value"
+	if [ "${POLICYEXISTS}" = "0" ] ; then
+		rm -f /etc/vnc/policy.d/common
+	else
+		sed -i 's/^Log=.*/'"${EXISTINGLOG}"'/g' /etc/vnc/policy.d/common
+	fi
 fi
 
 
