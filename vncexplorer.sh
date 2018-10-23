@@ -190,7 +190,11 @@ if [ "${MYPLATFORM}" = "Linux" -o "${MYPLATFORM}" = "OSX" ]; then
 		POLICYEXISTS=1
 		if grep -q "Log=" /etc/vnc/policy.d/common ; then
 			EXISTINGLOG=`grep "Log=" /etc/vnc/policy.d/common`
-			sed -i '' 's/^Log=.*/Log=*:file:100/g' /etc/vnc/policy.d/common
+			if [ "${MYPLATFORM}" = "OSX" ]; then
+				sed -i '' 's/^Log=.*/Log=*:file:100/g' /etc/vnc/policy.d/common
+			else
+				sed -i 's/^Log=.*/Log=*:file:100/g' /etc/vnc/policy.d/common
+			fi
 		else
 			echo "Log=*:file:100" >> /etc/vnc/policy.d/common
 		fi
@@ -602,7 +606,11 @@ if [ "${MYPLATFORM}" = "Linux" -o "${MYPLATFORM}" = "OSX" ]; then
 	if [ "${POLICYEXISTS}" = "0" ] ; then
 		rm -f /etc/vnc/policy.d/common
 	else
-		sed -i '' 's/^Log=.*/'"${EXISTINGLOG}"'/g' /etc/vnc/policy.d/common
+		if [ "${MYPLATFORM}" = "OSX" ]; then
+			sed -i '' 's/^Log=.*/'"${EXISTINGLOG}"'/g' /etc/vnc/policy.d/common
+		else
+			sed -i 's/^Log=.*/'"${EXISTINGLOG}"'/g' /etc/vnc/policy.d/common
+		fi
 	fi
 fi
 
