@@ -258,11 +258,11 @@ if [ -d $RCUHOMED/.vnc ]; then
 		if [ -f $RCUHOMED/.vnc/xstartup.custom ]; then cp $RCUHOMED/.vnc/xstartup.custom ${STARTDIR}/${HOSTNAME}/userdotvnc/xstartup.custom ; fi
 		if [ -f $RCUHOMED/vncserver-virtual.conf ]; then cp $RCUHOMED/vncserver-virtual.conf ${STARTDIR}/${HOSTNAME}/vncserver-virtual.conf ; fi
 	else
-		if [ -d /var/root/.vnc/config.d ]; then cp -R /var/root/.vnc/config.d ${STARTDIR}/${HOSTNAME}/rootdotvnc; fi
+		if [ -d /var/root/.vnc/config.d ]; then cp -R /var/root/.vnc/config.d/* ${STARTDIR}/${HOSTNAME}/rootdotvnc; fi
 	fi
 	if ls ${RCUHOMED}/.vnc/*.log 1> /dev/null 2>&1; then cp $RCUHOMED/.vnc/*.log ${STARTDIR}/${HOSTNAME}/logs/user; fi
 	if [ -f $RCUHOMED/.vnc/config ]; then cp $RCUHOMED/.vnc/config ${STARTDIR}/${HOSTNAME}/userdotvnc/config ; fi
-	if [ -d $RCUHOMED/.vnc/config.d ]; then cp -R $RCUHOMED/.vnc/config.d ${STARTDIR}/${HOSTNAME}/userdotvnc; fi
+	if [ -d $RCUHOMED/.vnc/config.d ]; then cp -R $RCUHOMED/.vnc/config.d/* ${STARTDIR}/${HOSTNAME}/userdotvnc; fi
 fi
 
 # get system .vnc
