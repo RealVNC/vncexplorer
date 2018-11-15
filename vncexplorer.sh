@@ -210,7 +210,7 @@ fi
 # restart service mode vncserver
 if [ "${SERVICEMODE}" = "1" ]; then	
 	# check user is happy for us to restart VNC Server
-	Repeated_Prompt "VNC Server needs to restart apply debug logging. Is this OK? (Y / N)\n\nN.B. All existing connections to VNC Server will be interrupted."
+	Repeated_Prompt "\n\nVNC Server needs to restart apply debug logging. Is this OK? (Y / N)\n\nN.B. All existing connections to VNC Server will be interrupted.\n"
 	
 	if [ "${MYPLATFORM}" = "Linux" ]; then
 		if [ "${SYSTEMD}" = "1" ]; then
