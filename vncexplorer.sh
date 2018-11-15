@@ -67,7 +67,7 @@ Repeated_Prompt () {
 		read ANS
 		case "$ANS" in
 		"y"|"Y"|"YES"|"yes"|"Yes") echo "Script will now continue";RECREATED="Y";;
-		"n"|"N"|"NO"|"No") echo "$1";;
+		"n"|"N"|"NO"|"No") echo -e "$1";;
 		*) echo "Input not valid, please try again or press Ctrl+C to exit script";;
 		esac
 	done
