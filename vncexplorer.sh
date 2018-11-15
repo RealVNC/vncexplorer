@@ -61,7 +61,7 @@ System_Check () {
 }
 
 Repeated_Prompt () {
-	echo "$1"
+	echo -e "$1"
 	RECREATED="N"
 	while [ "$RECREATED" != "Y" ] ; do
 		read ANS
