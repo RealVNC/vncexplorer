@@ -61,13 +61,13 @@ System_Check () {
 }
 
 Repeated_Prompt () {
-	echo -e "$1"
+	echo "$1"
 	RECREATED="N"
 	while [ "$RECREATED" != "Y" ] ; do
 		read ANS
 		case "$ANS" in
 		"y"|"Y"|"YES"|"yes"|"Yes") echo "Script will now continue";RECREATED="Y";;
-		"n"|"N"|"NO"|"No") echo -e "$1";;
+		"n"|"N"|"NO"|"No") echo "$1";;
 		*) echo "Input not valid, please try again or press Ctrl+C to exit script";;
 		esac
 	done
@@ -210,7 +210,7 @@ fi
 # restart service mode vncserver
 if [ "${SERVICEMODE}" = "1" ]; then	
 	# check user is happy for us to restart VNC Server
-	Repeated_Prompt "\n\nVNC Server needs to restart apply debug logging. Is this OK? (Y / N)\n\nN.B. All existing connections to VNC Server will be interrupted.\n"
+	Repeated_Prompt "VNC Server needs to restart apply debug logging. All existing connections to VNC Server will be interrupted. Is this OK? (Y / N)"
 	
 	if [ "${MYPLATFORM}" = "Linux" ]; then
 		if [ "${SYSTEMD}" = "1" ]; then
