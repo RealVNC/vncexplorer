@@ -127,7 +127,7 @@ case $ANS in
 esac
 
 echo "collecting details for: $REALUSER"
-if [ "${MYPLATFORM}" = "Linux" -o "${MYPLATFORM}" = "AIX" -o "${MYPLATFORM}" = "HPUX" ]; then
+if [ "${MYPLATFORM}" != "Linux" -o "${MYPLATFORM}" = "AIX" -o "${MYPLATFORM}" = "HPUX" -o "${MYPLATFORM}" = "SOLARIS" ]; then
 	RCUHOMED=`getent passwd $REALUSER | cut -d":" -f6`; else RCUHOMED=$HOME
 	if [ ! $RCUHOMED ]; then echo "user $REALUSER home directory not found - assuming  /tmp"; RCUHOMED=/tmp; fi # if we can't get the user home directory, set it to /tmp so we don't throw errors
 fi
