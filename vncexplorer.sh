@@ -328,7 +328,7 @@ fi
 if [ "${MYPLATFORM}" = "Linux" ]; then
 	if [ -d /usr/share/xsessions ]; then
 		for i in `ls /usr/share/xsessions` ;
-			do tmp=`grep TryExec /usr/share/xsessions/$i | cut -d"=" -f2`; echo $i ; pidof $tmp
+			do tmp=`grep Exec= /usr/share/xsessions/$i | cut -d"=" -f2`; echo $i ; pidof $tmp
 		done >> ${STARTDIR}/${HOSTNAME}/systemstate/xsession_running.txt
 	fi
 fi
@@ -485,6 +485,7 @@ fi
 
 # Security tools check
 if type sestatus > /dev/null 2>&1; then sestatus > ${STARTDIR}/${HOSTNAME}/systemstate/sestatus.txt; fi
+if type semodule > /dev/null 2>&1; then semodule -l | grep vnc > ${STARTDIR}/${HOSTNAME}/systemstate/semodules.txt; fi
 if type iptables > /dev/null 2>&1; then iptables -L > ${STARTDIR}/${HOSTNAME}/systemstate/iptables.txt; fi
 
 #Output runlevel to a file
