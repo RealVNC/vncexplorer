@@ -3,7 +3,7 @@ VNCExplorer is a set of scripts that can be run on supported platforms to gather
  the relevant configuration of the customer system - to help RealVNC Support diagnose and resolve customer support tickets more efficiently.
 
 ## Installing / Getting started
-The latest release is available at: https://github.com/RealVNC/vncexplorer/releases/latest
+The latest release is available from [Releases](/releases/latest)
  
 Simply extract the ZIP or tar.gz file from the link above and run with administrative priveleges on your system.
 
