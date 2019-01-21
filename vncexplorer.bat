@@ -161,7 +161,7 @@ mkdir %VDIR%\UserModeServerLogs
 FOR %%i IN (%appdata%) DO IF EXIST %%~si\..\Local\RealVNC\vncserver.log copy %%~si\..\Local\RealVNC\vncserver.* %VDIR%\UserModeServerLogs\ >nul
 mkdir %VDIR%\ServiceModeServerLogs
 if exist "C:\Program Files\RealVNC\VNC Server\Logs\vncserver.log" copy "C:\Program Files\RealVNC\VNC Server\Logs"\* %VDIR%\ServiceModeServerLogs >nul
-if exist "C:\Program Files\RealVNC\VNC Server\Logs\vncserver.log" copy "C:\ProgramData\RealVNC-Service"\* %VDIR%\ServiceModeServerLogs >nul
+if exist "C:\ProgramData\RealVNC-Service\vncserver.log" copy "C:\ProgramData\RealVNC-Service"\* %VDIR%\ServiceModeServerLogs >nul
 mkdir %VDIR%\ViewerLogs
 FOR %%i IN (%appdata%) DO IF EXIST %%~si\..\Local\RealVNC\vncviewer.log copy %%~si\..\Local\RealVNC\vncviewer.* %VDIR%\ViewerLogs\ >nul
 
