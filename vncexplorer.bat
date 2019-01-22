@@ -145,7 +145,7 @@ if exist "c:\Program Files\Common Files\microsoft shared\MSInfo\msinfo32.exe" (
 )
 
 :: power report
-echo Running system power report
+echo Running system power report - this will take at least 60 seconds
 mkdir %VDIR%\PowerReport
 if exist "C:\Windows\System32\powercfg.exe" (
     "C:\Windows\System32\powercfg.exe" -energy >nul
