@@ -148,7 +148,7 @@ if exist "c:\Program Files\Common Files\microsoft shared\MSInfo\msinfo32.exe" (
 echo Running system power report
 mkdir %VDIR%\PowerReport
 if exist "C:\Windows\System32\powercfg.exe" (
-    "C:\Windows\System32\powercfg.exe" -energy
+    "C:\Windows\System32\powercfg.exe" -energy >nul
     move energy-report.html %VDIR%\PowerReport >nul
 )
 
@@ -161,11 +161,6 @@ if exist "C:\Program Files\RealVNC\VNC Server\Logs\vncserver.log" copy "C:\Progr
 if exist "C:\ProgramData\RealVNC-Service\vncserver.log" copy "C:\ProgramData\RealVNC-Service"\* %VDIR%\ServiceModeServerLogs >nul
 mkdir %VDIR%\ViewerLogs
 FOR %%i IN (%appdata%) DO IF EXIST %%~si\..\Local\RealVNC\vncviewer.log copy %%~si\..\Local\RealVNC\vncviewer.* %VDIR%\ViewerLogs\ >nul
-
-:: event logs
-echo Running Script to export event logs
-mkdir %VDIR%\EventLogs
-cscript .\vncexporteventlog.vbs %VDIR%\EventLogs >nul
 
 echo Complete!
 echo Please send the contents of %VDIR% to RealVNC Support by
