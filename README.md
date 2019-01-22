@@ -19,7 +19,7 @@ Private keys and chat history are NOT included
 #### Using (AIX/Solaris/HPUX/Linux/OSX)
 Once downloaded and extracted onto the relevant system, please make this script executable by running in a terminal: chmod u+x
 This script must be run either as root or via sudo.
-To run the script using sudo, type: sudo ./vncexplorer.sh
+To run the script using sudo, type: ```sudo ./vncexplorer.sh```
 
 The script will gather information about the system it's running on and will create a temporary working directory called {hostname} in the current working directory.  The script will prompt for a non-root username. This should be the username used if you run RealVNC Server usermode or virtual mode server. 
 The script will default to root if you don't enter anything.
@@ -33,13 +33,13 @@ The script will clear up after itself - but please remove /var/tmp/vncexplorer o
 #### Data collected
 Currently running processes, current user environment, IP addresses, network connection status, VNC registry keys 
 (HKLM/Software/RealVNC and HKCU/Software/RealVNC), VNC service status, Event log data for VNC Server
-Secure information (private keys, passwords, chat history) is not collected.
+Secure information (private keys and chat history) is not collected.
 
 #### Using (Windows)
 Once downloaded and extracted onto the relevant system, please excute the batch file (vncexplorer.bat) in an elevated command prompt.
 
-The script will prompt for a directory to write the output to. Once finished, please zip the contents of the output directory specified and send this zip file to RealVNC Support.
+The script will create a sub-directory to write the output to. Once finished, please zip the contents of the created directory and send this zip file to RealVNC Support.
 
 # Contributing
-If you'd like to make changes or contribute, please fork the repository and use a feature
-branch. Pull requests are welcome.
+If you'd like to make changes or contribute, please fork the repository and use a feature branch.
+Pull requests are welcome.
