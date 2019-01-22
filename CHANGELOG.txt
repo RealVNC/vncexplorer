@@ -1,0 +1,51 @@
+1.1.0
+22 Jan 2019
+
+All - code aesthetics
+
+Linux / Mac - automatically enable debug logging
+
+Linux - capture logs for SystemXorg-enabled Virtual Mode VNC Servers
+Linux - check if VNC Server selinux modules are enabled
+Linux - improve detection of domain users' home directories
+Linux - detect current runlevel
+
+Windows - simplify Registry Key gathering
+Windows - capture logs from ProgramData directory
+Windows - set output directory to current directory
+Windows - silence output of file operations
+Windows - remove vbscript to obtain logs from Event Logs - these are obtained from debug log files instead
+Windows - add dxdiag output to information collected
+
+1.0.8
+12 Apr 2017
+Added root crontab and xsettings collection
+
+1.0.7
+23 Dec 2016
+Adds collection of system sleep configuration for Windows and Mac
+
+1.0.6
+27 Oct 2016
+Minor changes
+
+1.0.5
+13 Oct 2016
+Updated Windows .bat file to add registry keys for viewer and servers (user mode/service mode)
+
+1.0.4
+6 Oct 2016
+Better handling of collecting system-wide VNC config for service mode servers
+
+1.0.3
+29 Sep 2016
+Added checks for common VNC ports
+
+1.0.2
+26 Sep 2016
+Fixed data collection for virtual mode daemon and service modes
+Added checking for X lock files
+
+1.0.0
+1 Sep 2016
+VNC Explorer - initial github release
