@@ -137,7 +137,7 @@ move %VDIR%\hklm-reg2.txt %VDIR%\hklm-reg.txt >nul
 move %VDIR%\hkcu-reg2.txt %VDIR%\hkcu-reg.txt >nul
 move %VDIR%\hkcu-reg-viewer2.txt %VDIR%\hkcu-reg-viewer.txt >nul
 
-:: dxdig output
+:: dxdiag output
 echo Getting data from dxdiag
 if exist "C:\Windows\System32\dxdiag.exe" (
     "C:\Windows\System32\dxdiag.exe" /whql:off /t %VDIR%\dxdiag.txt >nul
@@ -160,6 +160,13 @@ if exist "C:\Windows\System32\powercfg.exe" (
     move energy-report.html %VDIR%\PowerReport >nul
 )
 
+:: enable debug logging
+2>nul reg query HKLM\Software\Policies\RealVNC\vncserver
+:: need to test %ERRORLEVEL% = 0 before saving
+:: 2>nul reg save HKLM\Software\Policies\RealVNC\vncserver %VDIR%\vncserver.key /y
+
+2>nul reg add HKLM\Software\Policies\RealVNC\vncserver /v Log /t REG_SZ /d "*:file:100" /f
+
 :: log files
 echo Gathering log files
 mkdir %VDIR%\UserModeServerLogs
@@ -169,6 +176,9 @@ if exist "C:\Program Files\RealVNC\VNC Server\Logs\vncserver.log" copy "C:\Progr
 if exist "C:\ProgramData\RealVNC-Service\vncserver.log" copy "C:\ProgramData\RealVNC-Service"\* %VDIR%\ServiceModeServerLogs >nul
 mkdir %VDIR%\ViewerLogs
 FOR %%i IN (%appdata%) DO IF EXIST %%~si\..\Local\RealVNC\vncviewer.log copy %%~si\..\Local\RealVNC\vncviewer.* %VDIR%\ViewerLogs\ >nul
+
+:: disable debug logging
+2>nul reg restore HKLM\Software\Policies\RealVNC\vncserver %VDIR%\vncserver.key
 
 echo Complete!
 echo Please send the contents of %VDIR% to RealVNC Support by
