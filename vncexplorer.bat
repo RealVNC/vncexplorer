@@ -138,17 +138,18 @@ move %VDIR%\hkcu-reg2.txt %VDIR%\hkcu-reg.txt >nul
 move %VDIR%\hkcu-reg-viewer2.txt %VDIR%\hkcu-reg-viewer.txt >nul
 
 :: dxdig output
+echo Getting data from dxdiag
 if exist "C:\Windows\System32\dxdiag.exe" (
     "C:\Windows\System32\dxdiag.exe" /whql:off /t %VDIR%\dxdiag.txt >nul
 ) else (
-    echo "Unable to find or execute dxdiag"
+    echo Unable to find or execute dxdiag
 )
 
 echo Getting data from MSInfo32
 if exist "c:\Program Files\Common Files\microsoft shared\MSInfo\msinfo32.exe" (
  "c:\Program Files\Common Files\microsoft shared\MSInfo\msinfo32.exe" /report %VDIR%\msinfo32_report.txt
 ) else (
-  echo "Unable to find or execute msinfo32"
+  echo Unable to find or execute msinfo32
 )
 
 :: power report
