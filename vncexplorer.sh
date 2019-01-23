@@ -186,26 +186,47 @@ mkdir ${STARTDIR}/${HOSTNAME}/logs/user
 mkdir ${STARTDIR}/${HOSTNAME}/logs/system
 mkdir ${STARTDIR}/${HOSTNAME}/startup
 
-POLICYEXISTS=0
+CONFIGEXISTS=0
+ENTERPRISE=0
 EXISTINGLOG=""
 
 if [ "${MYPLATFORM}" = "Linux" -o "${MYPLATFORM}" = "OSX" ]; then
 	#enable debug logging
-	mkdir -p /etc/vnc/policy.d
-	if [ -f /etc/vnc/policy.d/common ] ; then
-		POLICYEXISTS=1
-		if grep -q "Log=" /etc/vnc/policy.d/common ; then
-			EXISTINGLOG=`grep "Log=" /etc/vnc/policy.d/common`
-			if [ "${MYPLATFORM}" = "OSX" ]; then
-				sed -i '' 's/^Log=.*/Log=*:file:100/g' /etc/vnc/policy.d/common
+	#Test for Enterprise
+	if [ -s /etc/vnc/licensekey ]; then
+		mkdir -p /etc/vnc/policy.d
+		if [ -f /etc/vnc/policy.d/common ] ; then
+			CONFIGEXISTS=1
+			ENTERPRISE=1
+			if grep -q "Log=" /etc/vnc/policy.d/common ; then
+				EXISTINGLOG=`grep "Log=" /etc/vnc/policy.d/common`
+				if [ "${MYPLATFORM}" = "OSX" ]; then
+					sed -i '' 's/^Log=.*/Log=*:file:100/g' /etc/vnc/policy.d/common
+				else
+					sed -i 's/^Log=.*/Log=*:file:100/g' /etc/vnc/policy.d/common
+				fi
 			else
-				sed -i 's/^Log=.*/Log=*:file:100/g' /etc/vnc/policy.d/common
+				echo "Log=*:file:100" >> /etc/vnc/policy.d/common
 			fi
 		else
 			echo "Log=*:file:100" >> /etc/vnc/policy.d/common
 		fi
 	else
-		echo "Log=*:file:100" >> /etc/vnc/policy.d/common
+		if [ -f /etc/vnc/config.d/common.custom ] ; then
+			CONFIGEXISTS=1
+			if grep -q "Log=" /etc/vnc/config.d/common.custom ; then
+				EXISTINGLOG=`grep "Log=" /etc/vnc/config.d/common.custom`
+				if [ "${MYPLATFORM}" = "OSX" ]; then
+					sed -i '' 's/^Log=.*/Log=*:file:100/g' /etc/vnc/config.d/common.custom
+				else
+					sed -i 's/^Log=.*/Log=*:file:100/g' /etc/vnc/config.d/common.custom
+				fi
+			else
+				echo "Log=*:file:100" >> /etc/vnc/config.d/common.custom
+			fi
+		else
+			echo "Log=*:file:100" >> /etc/vnc/config.d/common.custom
+		fi
 	fi
 fi
 
@@ -577,8 +598,7 @@ if [ "${MYPLATFORM}" = "Linux" ];
 fi
 
 # Darwin binary file listing
-if [  "${MYPLATFORM}" = "OSX" ]; 
-	then 
+if [  "${MYPLATFORM}" = "OSX" ]; then
 		if [ -d /Library/vnc ];
 			then ls -al /Library/vnc/ > ${STARTDIR}/${HOSTNAME}/filesystem/library-vnc.txt
 		fi;
@@ -606,19 +626,30 @@ echo "cleaning up ${STARTDIR}/${HOSTNAME}. "
 rm -rf ${STARTDIR}/${HOSTNAME}
 
 if [ "${MYPLATFORM}" = "Linux" -o "${MYPLATFORM}" = "OSX" ]; then
-	
 	echo "Reverting logging to pre-script value"
-	if [ "${POLICYEXISTS}" = "0" ] ; then
-		rm -f /etc/vnc/policy.d/common
-	else
-		if [ "${MYPLATFORM}" = "OSX" ]; then
-			sed -i '' 's/^Log=.*/'"${EXISTINGLOG}"'/g' /etc/vnc/policy.d/common
+	
+	if [ "${CONFIGEXISTS}" = "0" ]; then
+		if [ "${ENTERPRISE}" = "1" ]; then
+			rm -f /etc/vnc/policy.d/common
 		else
-			sed -i 's/^Log=.*/'"${EXISTINGLOG}"'/g' /etc/vnc/policy.d/common
+			rm -f /etc/vnc/config.d/common.custom
+		fi
+	else
+		if [ "${ENTERPRISE}" = "1" ]; then
+			if [ "${MYPLATFORM}" = "OSX" ]; then
+				sed -i '' 's/^Log=.*/'"${EXISTINGLOG}"'/g' /etc/vnc/policy.d/common
+			else
+				sed -i 's/^Log=.*/'"${EXISTINGLOG}"'/g' /etc/vnc/policy.d/common
+			fi
+		else
+			if [ "${MYPLATFORM}" = "OSX" ]; then
+				sed -i '' 's/^Log=.*/'"${EXISTINGLOG}"'/g' /etc/vnc/config.d/common.custom
+			else
+				sed -i 's/^Log=.*/'"${EXISTINGLOG}"'/g' /etc/vnc/config.d/common.custom
+			fi
 		fi
 	fi
 fi
-
 
 echo ""
 echo "Please attach the following file to your RealVNC Customer Support ticket:"
