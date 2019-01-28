@@ -2,33 +2,6 @@
 
 cls
 
-:: Copyright (C) 2016 RealVNC Limited. All rights reserved.
-::
-:: Redistribution and use in source and binary forms, with or without
-:: modification, are permitted provided that the following conditions are met:
-:: 
-:: 1. Redistributions of source code must retain the above copyright notice, this
-:: list of conditions and the following disclaimer.
-::
-:: 2. Redistributions in binary form must reproduce the above copyright notice,
-:: this list of conditions and the following disclaimer in the documentation
-:: and/or other materials provided with the distribution.
-:: 
-:: 3. Neither the name of the copyright holder nor the names of its contributors
-:: may be used to endorse or promote products derived from this software without
-:: specific prior written permission.
-:: 
-:: THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-:: AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-:: IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-:: DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-:: FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-:: DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-:: SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-:: CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-:: OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-:: OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 echo This script is designed to gather system data to assist RealVNC Support
 echo troubleshoot issues with RealVNC Server running on Microsoft Windows systems.
 echo.
@@ -48,7 +21,7 @@ if %errorLevel% == 0 (
     echo Success: Administrative permissions confirmed.
 ) else (
     echo Failure: Current permissions inadequate. Please run this with elevated privileges
-goto :quit
+    goto :quit
 )
 
 echo.
@@ -62,31 +35,112 @@ if not exist %VDIR% (
     MKDIR %VDIR%
 )
 
+set ENT=0
+set CONFEXISTS=0
+
+:: enable debug logging
+2>nul reg query HKLM\Software\RealVNC /v vncserver_license >nul
+if %ERRORLEVEL% EQU 0 (
+    set ENT=1)
+    setlocal enabledelayedexpansion
+    if %ENT% EQU 1 (
+        2>nul reg query HKLM\Software\Policies\RealVNC\vncserver >nul
+        if !ERRORLEVEL! EQU 0 (
+            set CONFEXISTS=1
+            2>nul reg save HKLM\Software\Policies\RealVNC\vncserver vncserver.key /y >nul
+            2>nul reg add HKLM\Software\Policies\RealVNC\vncserver /v Log /t REG_SZ /d "*:file:100" /f >nul
+        ) else (
+            2>nul reg add HKLM\Software\Policies\RealVNC\vncserver /v Log /t REG_SZ /d "*:file:100" /f >nul
+    )
+) else (
+    2>nul reg query HKLM\Software\RealVNC\vncserver >nul
+    if !ERRORLEVEL! EQU 0 (
+        set CONFEXISTS=1
+        2>nul reg save HKLM\Software\RealVNC\vncserver vncserver.key /y >nul
+        2>nul reg add HKLM\Software\RealVNC\vncserver /v Log /t REG_SZ /d "*:file:100" /f >nul
+    ) else (
+        2>nul reg add HKLM\Software\RealVNC\vncserver /v Log /t REG_SZ /d "*:file:100" /f >nul
+    )
+)
+
+:again
+set /p answer=VNC Server needs to restart apply debug logging. All existing connections to VNC Server will be interrupted. Is this OK? (Y / N)?
+if /i "%answer:~,1%" EQU "Y" goto restartserver
+if /i "%answer:~,1%" EQU "N" goto again
+cho Input not valid, please try again or press Ctrl+C to exit script
+goto again
+
+:restartserver
+
+
+:again2
+set /p answer=Have you re-created the issue? (Y / N)?
+if /i "%answer:~,1%" EQU "Y" goto gatherlogs
+if /i "%answer:~,1%" EQU "N" goto again2
+echo Input not valid, please try again or press Ctrl+C to exit script
+goto again2
+
+:gatherlogs
+
+:: log files
+echo Gathering log files
+mkdir %VDIR%\UserModeServerLogs
+FOR %%i IN (%appdata%) DO IF EXIST %%~si\..\Local\RealVNC\vncserver.log copy %%~si\..\Local\RealVNC\vncserver.* %VDIR%\UserModeServerLogs\ >nul
+mkdir %VDIR%\ServiceModeServerLogs
+if exist "C:\Program Files\RealVNC\VNC Server\Logs\vncserver.log" copy "C:\Program Files\RealVNC\VNC Server\Logs"\* %VDIR%\ServiceModeServerLogs >nul
+if exist "C:\ProgramData\RealVNC-Service\vncserver.log" copy "C:\ProgramData\RealVNC-Service"\* %VDIR%\ServiceModeServerLogs >nul
+mkdir %VDIR%\ViewerLogs
+FOR %%i IN (%appdata%) DO IF EXIST %%~si\..\Local\RealVNC\vncviewer.log copy %%~si\..\Local\RealVNC\vncviewer.* %VDIR%\ViewerLogs\ >nul
+
+::Gather events from EventLog
+if exist "C:\Windows\System32\wevtutil.exe" (
+    2>nul wevtutil qe Application /q:"*[System[Provider[@Name='VNC Server']]]" /rd:true /f:text > %VDIR%\EventLogServiceMode.txt"
+) else (
+    mkdir %VDIR%\EventLogs
+    2>nul cscript .\vncexporteventlog.vbs %VDIR%\EventLogs
+)
+
+if %CONFEXISTS% EQU 1 (
+    if %ENT% EQU 1 (
+        2>nul reg restore HKLM\Software\Policies\RealVNC\vncserver vncserver.key >nul
+    ) else (
+        2>nul reg restore HKLM\Software\RealVNC\vncserver vncserver.key >nul
+    )
+) else (
+    if %ENT% EQU 1 (
+        2>nul reg delete HKLM\Software\Policies\RealVNC\vncserver /f >nul
+    ) else (
+        2>nul reg delete HKLM\Software\RealVNC\vncserver /f >nul
+    )
+)
+
+2>nul del vncserver.key >nul
+
 echo Getting user environment
 set > %VDIR%\userenv.txt
 
 echo Getting network details
 ipconfig /all > %VDIR%\ipconfig.txt
 
-echo Querying services
 :: query VNC Server service
+echo Querying services
 2>nul sc qc vncserver > %VDIR%\vnc_service_status.txt
 
-echo Getting running processes
 :: get list of all running processes
+echo Getting running processes
 2>nul tasklist /FO list > %VDIR%\all_running_processes.txt
 
-echo Getting netstat
 :: get netstat info
+echo Getting netstat
 netstat -an > %VDIR%\netstat.txt
 
-echo Checking firewall status
 :: checking firewall status - netsh firewall is deprecated but this must work with older Windows OSs
+echo Checking firewall status
 netsh firewall show state > %VDIR%\firewall.txt
 
-echo Getting registry keys - Server
 :: query registry keys
 :: Service Mode keys (HKLM)
+echo Getting registry keys - Server
 echo Server : Parameters > %VDIR%\hklm-reg.txt
 2>nul reg query HKLM\SOFTWARE\RealVNC\vncserver >> %VDIR%\hklm-reg.txt
 
@@ -103,8 +157,8 @@ echo Server : CompatibilityFlags >> %VDIR%\hklm-reg.txt
 echo Server : Parameters > %VDIR%\hkcu-reg.txt
 2>nul reg query HKCU\SOFTWARE\RealVNC\vncserver >> %VDIR%\hkcu-reg.txt
 
-echo Getting registry keys - Locale info (HKCU)
 :: Locale settings
+echo Getting registry keys - Locale info (HKCU)
 echo Server : Locale (Service Mode UI): >> %VDIR%\hkcu-reg.txt
 2>nul reg query HKCU\SOFTWARE\RealVNC\vncserverui-service | findstr Locale >> %VDIR%\hkcu-reg.txt
 echo Server : Locale (User Mode UI): >> %VDIR%\hkcu-reg.txt
@@ -147,9 +201,9 @@ if exist "C:\Windows\System32\dxdiag.exe" (
 
 echo Getting data from MSInfo32
 if exist "c:\Program Files\Common Files\microsoft shared\MSInfo\msinfo32.exe" (
- "c:\Program Files\Common Files\microsoft shared\MSInfo\msinfo32.exe" /report %VDIR%\msinfo32_report.txt
+    "c:\Program Files\Common Files\microsoft shared\MSInfo\msinfo32.exe" /report %VDIR%\msinfo32_report.txt
 ) else (
-  echo Unable to find or execute msinfo32
+    echo Unable to find or execute msinfo32
 )
 
 :: power report
@@ -159,26 +213,6 @@ if exist "C:\Windows\System32\powercfg.exe" (
     "C:\Windows\System32\powercfg.exe" -energy >nul
     move energy-report.html %VDIR%\PowerReport >nul
 )
-
-:: enable debug logging
-2>nul reg query HKLM\Software\Policies\RealVNC\vncserver
-:: need to test %ERRORLEVEL% = 0 before saving
-:: 2>nul reg save HKLM\Software\Policies\RealVNC\vncserver %VDIR%\vncserver.key /y
-
-2>nul reg add HKLM\Software\Policies\RealVNC\vncserver /v Log /t REG_SZ /d "*:file:100" /f
-
-:: log files
-echo Gathering log files
-mkdir %VDIR%\UserModeServerLogs
-FOR %%i IN (%appdata%) DO IF EXIST %%~si\..\Local\RealVNC\vncserver.log copy %%~si\..\Local\RealVNC\vncserver.* %VDIR%\UserModeServerLogs\ >nul
-mkdir %VDIR%\ServiceModeServerLogs
-if exist "C:\Program Files\RealVNC\VNC Server\Logs\vncserver.log" copy "C:\Program Files\RealVNC\VNC Server\Logs"\* %VDIR%\ServiceModeServerLogs >nul
-if exist "C:\ProgramData\RealVNC-Service\vncserver.log" copy "C:\ProgramData\RealVNC-Service"\* %VDIR%\ServiceModeServerLogs >nul
-mkdir %VDIR%\ViewerLogs
-FOR %%i IN (%appdata%) DO IF EXIST %%~si\..\Local\RealVNC\vncviewer.log copy %%~si\..\Local\RealVNC\vncviewer.* %VDIR%\ViewerLogs\ >nul
-
-:: disable debug logging
-2>nul reg restore HKLM\Software\Policies\RealVNC\vncserver %VDIR%\vncserver.key
 
 echo Complete!
 echo Please send the contents of %VDIR% to RealVNC Support by
