@@ -67,7 +67,7 @@ if %ERRORLEVEL% EQU 0 (
 set /p answer=VNC Server needs to restart apply debug logging. All existing connections to VNC Server will be interrupted. Is this OK? (Y / N)?
 if /i "%answer:~,1%" EQU "Y" goto restartserver
 if /i "%answer:~,1%" EQU "N" goto again
-cho Input not valid, please try again or press Ctrl+C to exit script
+echo Input not valid, please try again or press Ctrl+C to exit script
 goto again
 
 :restartserver
