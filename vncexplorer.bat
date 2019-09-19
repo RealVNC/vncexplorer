@@ -71,7 +71,8 @@ echo Input not valid, please try again or press Ctrl+C to exit script
 goto again
 
 :restartserver
-
+net stop vncserver
+net start vncserver
 
 :again2
 set /p answer=Have you re-created the issue? (Y / N)?
